@@ -15,7 +15,7 @@ export default async function NetworkPage() {
   ]);
   return (
     <div className="space-y-6">
-      <PageTitle eyebrow="Mainnet" title="Network" />
+      <PageTitle eyebrow={process.env.ZSCAN_NETWORK === "testnet" ? "Testnet" : "Mainnet"} title="Network" />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Height" value={int(status.chain_tip)} />
         <Stat label="Hashrate" value={hashrate(net.solps)} sub="estimated from difficulty" />
