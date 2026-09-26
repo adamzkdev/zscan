@@ -5,8 +5,11 @@ import { CopyButton, Hash } from "@/components/Hash";
 import { ArrowRightIcon, ClockIcon, ShieldIcon } from "@/components/icons";
 import { KindBadge } from "@/components/KindBadge";
 import { TimeAgo } from "@/components/TimeAgo";
+import { TxTracker } from "@/components/TxTracker";
 import { Card, PageTitle, Pill, Rows, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
+import { chainContext } from "@/lib/chain";
+import { FINAL_CONFIRMATIONS } from "@/lib/estimate";
 import { bytes, short, utc, zec } from "@/lib/format";
 import type { Action, TxDetail } from "@/lib/types";
 
@@ -52,6 +55,8 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
   const { txid } = await props.params;
   const t = await apiOrNull<TxDetail>(`/v1/tx/${encodeURIComponent(txid)}`);
   if (!t) notFound();
+  const unfinalized = t.status === "mempool" || (t.confirmations ?? 0) < FINAL_CONFIRMATIONS;
+  const chain = unfinalized ? await chainContext().catch(() => null) : null;
 
   const shieldedCount = t.sapling_spends.length + t.sapling_outputs.length + t.orchard_actions.length + t.ironwood_actions.length + t.joinsplits;
   const from = t.inputs.find((i) => i.address)?.address;
@@ -60,6 +65,7 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
   return (
     <div className="space-y-4">
       <PageTitle title="Transaction Details" />
+      {chain && <TxTracker key={t.txid} initial={t} chain={chain} />}
       <div className="flex gap-2 text-sm">
         <a href="#overview" className="rounded-lg bg-link px-3 py-1.5 font-medium text-white">Overview</a>
         {shieldedCount > 0 && (

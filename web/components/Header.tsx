@@ -129,7 +129,7 @@ export function Header({
                       />
                     </svg>
                   </button>
-                  <div className="invisible absolute right-0 top-full z-50 w-72 translate-y-1 pt-2 opacity-0 transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                  <div className="invisible absolute right-0 top-full z-50 w-56 translate-y-1 pt-2 opacity-0 transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
                     <ul
                       role="menu"
                       className="overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-xl"
@@ -137,16 +137,9 @@ export function Header({
                     >
                       {m.items!.map((i) => {
                         const inner = (
-                          <>
-                            <span className="block text-sm text-text group-hover/item:text-link">
-                              {i.label}
-                            </span>
-                            {i.desc && (
-                              <span className="block text-xs text-muted">
-                                {i.desc}
-                              </span>
-                            )}
-                          </>
+                          <span className="block text-sm text-text group-hover/item:text-link">
+                            {i.label}
+                          </span>
                         );
                         const cls =
                           "group/item block rounded-lg px-3 py-2 hover:bg-surface-2";

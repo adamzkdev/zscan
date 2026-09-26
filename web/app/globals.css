@@ -172,3 +172,66 @@ label[for] {
     background-color: transparent;
   }
 }
+
+/* Transaction tracker (pending / unfinalized transactions). */
+@keyframes tracker-stripes {
+  to {
+    background-position: 28px 0;
+  }
+}
+@keyframes tracker-flow {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@keyframes tracker-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes tracker-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--link) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in oklab, var(--link) 0%, transparent);
+  }
+}
+.tracker-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in oklab, var(--link) 55%, transparent) 0 7px,
+    color-mix(in oklab, var(--link) 30%, transparent) 7px 14px
+  );
+  background-size: 28px 100%;
+  animation: tracker-stripes 0.8s linear infinite;
+}
+.tracker-flow {
+  animation: tracker-flow 1.6s ease-in-out infinite;
+}
+.tracker-pop {
+  animation: tracker-pop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+}
+.tracker-glow {
+  animation: tracker-glow 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tracker-stripes,
+  .tracker-flow,
+  .tracker-pop,
+  .tracker-glow {
+    animation: none;
+  }
+}
