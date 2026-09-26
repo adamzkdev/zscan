@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CopyButton, Hash } from "@/components/Hash";
 import { ArrowRightIcon, ClockIcon, ShieldIcon } from "@/components/icons";
 import { KindBadge } from "@/components/KindBadge";
+import { LiveConfirmations } from "@/components/LiveConfirmations";
 import { NameTag } from "@/components/NameTag";
 import { TimeAgo } from "@/components/TimeAgo";
 import { TxTracker } from "@/components/TxTracker";
@@ -11,7 +12,7 @@ import { Card, PageTitle, Pill, Rows, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { chainContext } from "@/lib/chain";
 import { FINAL_CONFIRMATIONS } from "@/lib/estimate";
-import { bytes, short, utc, zec } from "@/lib/format";
+import { bytes, int, short, utc, zec } from "@/lib/format";
 import type { Action, TxDetail } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/tx/[txid]">): Promise<Metadata> {
@@ -91,7 +92,11 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
               t.height != null ? (
                 <span key="b" className="flex flex-wrap items-center gap-2">
                   <Link href={`/block/${t.height}`} className="text-link hover:text-link-hover">{t.height}</Link>
-                  <Pill>{t.confirmations} Block Confirmation{t.confirmations === 1 ? "" : "s"}</Pill>
+                  {unfinalized ? (
+                    <LiveConfirmations height={t.height} initial={t.confirmations ?? 1} />
+                  ) : (
+                    <Pill>{int(t.confirmations)} Block Confirmation{t.confirmations === 1 ? "" : "s"}</Pill>
+                  )}
                 </span>
               ) : (
                 "(Pending)"

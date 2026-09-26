@@ -28,7 +28,7 @@ export const NAV: NavMenu[] = [
     items: [
       { href: "/protocols", label: "Protocols" },
       { href: "/supply", label: "Supply & Issuance" },
-      { href: "/funding", label: "Dev Fund Tracker" },
+      { href: "/funding", label: "Grants & Lockbox" },
       { href: "/fees", label: "Fee Tracker" },
       { href: "/charts", label: "Charts & Stats" },
       { href: "/miners", label: "Top Miners" },

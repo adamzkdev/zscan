@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   blockQuantile,
   conventionalFee,
@@ -46,22 +47,46 @@ export function TxTracker({ initial, chain }: { initial: TxDetail; chain: ChainC
   );
   const [justMined, setJustMined] = useState(false);
   const wasPending = useRef(initial.status === "mempool");
+  const lastEvent = useRef(0);
+  const router = useRouter();
   const now = useNow();
 
-  useLive(async (e) => {
-    if (e.type !== "block") return;
-    setTip((t) => Math.max(t, e.data.height));
-    setLastBlockAt(Date.now());
-    const next = await fetch(`/v1/tx/${tx.txid}`)
+  /** Re-reads the transaction; returns whether it is (now) mined. */
+  const refresh = useCallback(async () => {
+    const next = await fetch(`/v1/tx/${initial.txid}`)
       .then((r) => (r.ok ? (r.json() as Promise<TxDetail>) : null))
       .catch(() => null);
-    if (!next) return;
+    if (!next) return false;
+    if (next.height != null && next.confirmations != null) {
+      setTip((t) => Math.max(t, next.height! + next.confirmations! - 1));
+    }
     if (wasPending.current && next.status === "mined") {
       wasPending.current = false;
       setJustMined(true);
+      // Re-render the server parts of the page (status, block, timestamp) in place.
+      router.refresh();
     }
     setTx(next);
+    return next.status === "mined";
+  }, [initial.txid, router]);
+
+  useLive(async (e) => {
+    if (e.type !== "block") return;
+    lastEvent.current = Date.now();
+    setTip((t) => Math.max(t, e.data.height));
+    setLastBlockAt(Date.now());
+    const mined = await refresh();
+    // The node can lag the block notification by a moment: look again shortly.
+    if (!mined && wasPending.current) setTimeout(refresh, 4000);
   });
+
+  // Fallback if live events stop (sleeping tab, proxy dropping the WebSocket).
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (Date.now() - lastEvent.current > 30_000) refresh();
+    }, 30_000);
+    return () => clearInterval(t);
+  }, [refresh]);
 
   useEffect(() => {
     if (!justMined) return;
@@ -80,6 +105,10 @@ export function TxTracker({ initial, chain }: { initial: TxDetail; chain: ChainC
   const conventional = conventionalFee(actions, chain.marginalFee, chain.graceActions);
   const paysFull = paysConventional(tx.fee, actions, chain.marginalFee, chain.graceActions);
   const expiresIn = tx.expiry_height ? tx.expiry_height - tip : null;
+  // Seconds until the next block is expected (0 once it's overdue), then whole blocks after it.
+  const nextIn = elapsed == null ? T : Math.max(T - elapsed, 0);
+  const blocksLeft = Math.max(FINAL_CONFIRMATIONS - conf, 0);
+  const finalIn = nextIn + Math.max(blocksLeft - 1, 0) * T;
 
   const headline = pending
     ? "Waiting to be mined"
@@ -99,11 +128,11 @@ export function TxTracker({ initial, chain }: { initial: TxDetail; chain: ChainC
         <p className="text-sm text-muted">
           {pending
             ? paysFull
-              ? <>Expected in the <b className="text-text">next block</b>{elapsed != null && <> · ≈ {duration(T)} on average</>}</>
+              ? <>Expected in the <b className="text-text">next block</b> · {nextIn > 0 ? <>≈ <b className="num text-text">{duration(nextIn)}</b></> : "any moment now"}</>
               : <>May be delayed: fee below the ZIP-317 conventional fee</>
             : final
               ? <>{int(conf)} confirmations · safe to treat as settled</>
-              : <>Final in ≈ <b className="text-text">{duration((FINAL_CONFIRMATIONS - conf) * T)}</b> ({FINAL_CONFIRMATIONS - conf} more block{FINAL_CONFIRMATIONS - conf === 1 ? "" : "s"})</>}
+              : <>Final in ≈ <b className="num text-text">{duration(finalIn)}</b> ({blocksLeft} more block{blocksLeft === 1 ? "" : "s"})</>}
         </p>
       </div>
 
@@ -126,7 +155,7 @@ export function TxTracker({ initial, chain }: { initial: TxDetail; chain: ChainC
               </p>
               {expiresIn != null && expiresIn > 0 && (
                 <p className="text-muted">
-                  Expires at block {int(tx.expiry_height)} if not mined (≈ {duration(expiresIn * T)})
+                  Expires at block {int(tx.expiry_height)} if not mined (≈ {duration(nextIn + (expiresIn - 1) * T)})
                 </p>
               )}
             </div>

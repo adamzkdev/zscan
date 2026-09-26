@@ -51,6 +51,7 @@ export interface Price {
   market_cap_usd: number;
   volume_24h_usd: number;
   history: [number, number][];
+  rates: Record<string, number>;
 }
 
 export interface PoolValues {
@@ -130,6 +131,7 @@ export interface AddressDetail {
   first_seen: string | null;
   last_seen: string | null;
   indexed_from: number | null;
+  filtered_count: number;
   txs: { txid: string; height: number; time: string; kind: TxKind; delta: number }[];
 }
 

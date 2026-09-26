@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddressTxTable } from "@/components/AddressTxTable";
 import { CopyButton } from "@/components/Hash";
-import { KindBadge } from "@/components/KindBadge";
 import { NameTag } from "@/components/NameTag";
 import { QrButton } from "@/components/QrButton";
 import { TimeAgo } from "@/components/TimeAgo";
-import { Card, Empty, PageTitle, Pill, tableHead, td, th, Zec } from "@/components/ui";
+import { Card, PageTitle, Pill, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
-import { int, short, utc } from "@/lib/format";
-import type { AddressDetail } from "@/lib/types";
+import { int, utc } from "@/lib/format";
+import type { AddressDetail, Price } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/address/[address]">): Promise<Metadata> {
   const { address } = await props.params;
@@ -19,8 +18,16 @@ export async function generateMetadata(props: PageProps<"/address/[address]">): 
 export default async function AddressPage(props: PageProps<"/address/[address]">) {
   const { address } = await props.params;
   const sp = await props.searchParams;
-  const page = Math.max(0, Number(sp.page ?? 0) || 0);
-  const a = await apiOrNull<AddressDetail>(`/v1/address/${encodeURIComponent(address)}?limit=25&page=${page}`);
+  const q = new URLSearchParams({ limit: "25" });
+  for (const k of ["page", "kind", "direction", "sort", "order"]) {
+    const v = sp[k];
+    if (typeof v === "string" && v) q.set(k, v);
+  }
+  const [a, price, history] = await Promise.all([
+    apiOrNull<AddressDetail>(`/v1/address/${encodeURIComponent(address)}?${q}`),
+    apiOrNull<Price>("/v1/price").catch(() => null),
+    apiOrNull<{ usd: [number, number][] }>("/v1/price/history").catch(() => null),
+  ]);
   if (!a) notFound();
 
   return (
@@ -78,45 +85,7 @@ export default async function AddressPage(props: PageProps<"/address/[address]">
           </a>
         }
       >
-        {a.txs.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px]">
-              <thead className={tableHead}>
-                <tr>
-                  <th className={th}>Transaction Hash</th>
-                  <th className={th}>Method</th>
-                  <th className={th}>Block</th>
-                  <th className={th}>Age</th>
-                  <th className={th} />
-                  <th className={`${th} text-right`}>Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {a.txs.map((t) => (
-                  <tr key={t.txid} className="hover:bg-surface-2">
-                    <td className={td}>
-                      <Link href={`/tx/${t.txid}`} className="font-mono text-link hover:text-link-hover">{short(t.txid, 14, 0)}</Link>
-                    </td>
-                    <td className={td}><KindBadge kind={t.kind} /></td>
-                    <td className={td}><Link href={`/block/${t.height}`} className="num text-link hover:text-link-hover">{t.height}</Link></td>
-                    <td className={`${td} text-muted`}><TimeAgo iso={t.time} /></td>
-                    <td className={td}>{t.delta >= 0 ? <Pill tone="good">IN</Pill> : <Pill tone="warn">OUT</Pill>}</td>
-                    <td className={`${td} text-right`}><Zec zat={Math.abs(t.delta)} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Empty>No activity in the indexed range.</Empty>
-        )}
-        <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
-          <span className="text-xs text-faint">{a.indexed_from != null && `Activity indexed from block ${int(a.indexed_from)}. Balance covers full history.`}</span>
-          <div className="flex gap-2">
-            {page > 0 && <Link href={`?page=${page - 1}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">‹ Newer</Link>}
-            {a.txs.length === 25 && <Link href={`?page=${page + 1}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Older ›</Link>}
-          </div>
-        </div>
+        <AddressTxTable a={a} rates={price?.rates ?? null} usdHistory={history?.usd ?? []} />
       </Card>
     </div>
   );

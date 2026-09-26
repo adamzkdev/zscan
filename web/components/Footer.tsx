@@ -23,7 +23,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
       ["/txs?kind=migration", "Migrations"],
       ["/txs?kind=shielded", "Shielded Transactions"],
       ["/privacy-stats", "Anonymity Sets"],
-      ["/funding", "Dev Fund Tracker"],
+      ["/funding", "Grants & Lockbox"],
     ],
   },
   {
