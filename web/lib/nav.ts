@@ -10,6 +10,7 @@ export const NAV: NavMenu[] = [
       { href: "/mempool", label: "Pending Transactions" },
       { href: "/blocks", label: "View Blocks" },
       { href: "/accounts", label: "Top Accounts" },
+      { href: "/labels", label: "Address Labels" },
     ],
   },
   {
@@ -25,6 +26,7 @@ export const NAV: NavMenu[] = [
   {
     label: "Resources",
     items: [
+      { href: "/protocols", label: "Protocols" },
       { href: "/supply", label: "Supply & Issuance" },
       { href: "/funding", label: "Dev Fund Tracker" },
       { href: "/fees", label: "Fee Tracker" },

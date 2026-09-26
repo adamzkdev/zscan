@@ -11,6 +11,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
       ["/mempool", "Pending Transactions"],
       ["/network", "Network Stats"],
       ["/upgrades", "Network Upgrades"],
+      ["/protocols", "Protocols"],
       ["/supply", "Supply & Issuance"],
       ["/fees", "Fee Tracker"],
     ],

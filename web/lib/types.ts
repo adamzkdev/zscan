@@ -115,11 +115,13 @@ export interface TxDetail {
   sapling_outputs: string[];
   orchard_actions: Action[];
   ironwood_actions: Action[];
+  labels: Record<string, Tag>;
 }
 
 export interface AddressDetail {
   address: string;
   label: string | null;
+  tag: Tag | null;
   blocks_mined: number;
   balance: number;
   received: number;
@@ -373,4 +375,61 @@ export interface Upgrades {
   next: string | null;
   economics_pending: boolean;
   upgrades: Upgrade[];
+}
+
+export type ProtocolCategory = "shielded_pool" | "treasury" | "bridge" | "exchange" | "fund" | "mining_pool";
+
+export interface Tag {
+  name: string;
+  category: ProtocolCategory | string;
+  protocol: string | null;
+  source: string;
+  origin: "curated" | "consensus" | "coinbase" | "api";
+  active: boolean;
+}
+
+export interface LabeledAddress extends Tag {
+  address: string;
+  balance: number | null;
+  updated_at: string;
+}
+
+export interface ProtocolSummary {
+  slug: string;
+  name: string;
+  category: ProtocolCategory | string;
+  website: string | null;
+  description: string | null;
+  holdings: number | null;
+  change_1d: number | null;
+  change_7d: number | null;
+  change_30d: number | null;
+  inflow_7d: number | null;
+  outflow_7d: number | null;
+  addresses: number;
+  sparkline: number[];
+  stats: Record<string, unknown> | null;
+}
+
+export interface ProtocolDay {
+  day: string;
+  holdings: number;
+  inflow: number;
+  outflow: number;
+}
+
+export interface ProtocolTx {
+  txid: string;
+  height: number;
+  time: string;
+  kind: TxKind;
+  delta: number;
+}
+
+export interface ProtocolDetail {
+  protocol: ProtocolSummary;
+  daily: ProtocolDay[];
+  addresses: LabeledAddress[];
+  recent_txs: ProtocolTx[];
+  indexed_from: number | null;
 }

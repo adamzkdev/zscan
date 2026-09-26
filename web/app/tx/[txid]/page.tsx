@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CopyButton, Hash } from "@/components/Hash";
 import { ArrowRightIcon, ClockIcon, ShieldIcon } from "@/components/icons";
 import { KindBadge } from "@/components/KindBadge";
+import { NameTag } from "@/components/NameTag";
 import { TimeAgo } from "@/components/TimeAgo";
 import { TxTracker } from "@/components/TxTracker";
 import { Card, PageTitle, Pill, Rows, Zec } from "@/components/ui";
@@ -117,7 +118,7 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
             [
               "From",
               t.inputs.length ? (
-                from ? <Hash key="f" value={from} href={`/address/${from}`} full /> : t.inputs[0].coinbase != null ? "New coins (coinbase)" : "—"
+                from ? <span key="f" className="flex flex-wrap items-center gap-2"><Hash value={from} href={`/address/${from}`} full /><NameTag tag={t.labels[from]} /></span> : t.inputs[0].coinbase != null ? "New coins (coinbase)" : "—"
               ) : (
                 <span key="f" className="inline-flex items-center gap-1.5 text-ironwood"><ShieldIcon /> Shielded pool</span>
               ),
@@ -126,7 +127,7 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
             [
               "To",
               t.outputs.length ? (
-                to ? <Hash key="to" value={to} href={`/address/${to}`} full /> : "—"
+                to ? <span key="to" className="flex flex-wrap items-center gap-2"><Hash value={to} href={`/address/${to}`} full /><NameTag tag={t.labels[to]} /></span> : "—"
               ) : (
                 <span key="to" className="inline-flex items-center gap-1.5 text-ironwood"><ShieldIcon /> Shielded pool</span>
               ),
@@ -161,7 +162,7 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
                     <span className="text-muted">Coinbase (newly minted)</span>
                   ) : (
                     <div className="min-w-0">
-                      {i.address ? <Hash value={i.address} href={`/address/${i.address}`} head={10} tail={8} /> : <span className="text-faint">unknown</span>}
+                      {i.address ? <span className="flex flex-wrap items-center gap-2"><Hash value={i.address} href={`/address/${i.address}`} head={10} tail={8} /><NameTag tag={t.labels[i.address]} /></span> : <span className="text-faint">unknown</span>}
                       <p className="text-xs text-faint">
                         <Link href={`/tx/${i.prev_txid}`} className="font-mono hover:text-link">{short(i.prev_txid!, 8, 4)}:{i.prev_n}</Link>
                       </p>
@@ -179,7 +180,7 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
                 <li key={o.n} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                   <div className="min-w-0">
                     {o.address ? (
-                      <Hash value={o.address} href={`/address/${o.address}`} head={10} tail={8} />
+                      <span className="flex flex-wrap items-center gap-2"><Hash value={o.address} href={`/address/${o.address}`} head={10} tail={8} /><NameTag tag={t.labels[o.address]} /></span>
                     ) : o.op_return != null ? (
                       <span className="block">
                         <Pill tone="info">OP_RETURN</Pill>{" "}

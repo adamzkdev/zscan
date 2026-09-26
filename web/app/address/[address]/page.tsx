@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/Hash";
 import { KindBadge } from "@/components/KindBadge";
+import { NameTag } from "@/components/NameTag";
 import { QrButton } from "@/components/QrButton";
 import { TimeAgo } from "@/components/TimeAgo";
 import { Card, Empty, PageTitle, Pill, tableHead, td, th, Zec } from "@/components/ui";
@@ -35,8 +36,10 @@ export default async function AddressPage(props: PageProps<"/address/[address]">
       />
       {(a.label || a.blocks_mined > 0) && (
         <div className="-mt-2 flex flex-wrap items-center gap-2">
-          {a.label && <Pill tone="info">{a.label}</Pill>}
+          {a.tag ? <NameTag tag={a.tag} /> : a.label && <Pill tone="info">{a.label}</Pill>}
+          {a.tag && !a.tag.active && <Pill>Retired</Pill>}
           {a.blocks_mined > 0 && <Pill>{int(a.blocks_mined)} blocks mined (indexed range)</Pill>}
+          {a.tag && <span className="text-xs text-muted">Label source: {a.tag.source}</span>}
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
