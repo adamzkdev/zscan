@@ -1,7 +1,8 @@
 # ZScan media kit
 
-Logos and social assets for ZScan. Text is outlined in the SVGs, so they render the same
-everywhere without the font installed.
+Logos and social assets for ZScan, published at https://zscan.cash/brand (files in
+`web/public/brand/`, plus `zscan-media-kit.zip`). Text is outlined in the SVGs, so they render
+the same everywhere without the font installed.
 
 | File | Use |
 |---|---|
@@ -40,6 +41,6 @@ Typeface: Roboto (700 for the wordmark). Tagline: *See what's public. Respect wh
 cd brand/source
 npm install opentype.js
 for w in 400 500 700; do curl -sfLo roboto-$w.ttf "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/latin-$w-normal.ttf"; done
-node build.js ..            # SVGs
-python3 render.py ..        # PNGs (needs Playwright for Python and Google Chrome)
+node build.js ../../web/public/brand       # SVGs
+python3 render.py ../../web/public/brand   # PNGs (needs Playwright for Python and Google Chrome)
 ```

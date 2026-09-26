@@ -92,7 +92,7 @@ export default async function SupplyPage() {
             ))}
           </ul>
           <p className="mt-4 text-xs text-muted">
-            Lockbox balance: <Zec zat={s.lockbox} decimals={2} /> · <Link href="/funding" className="text-link hover:text-link-hover">Dev fund tracker →</Link>
+            Lockbox balance: <Zec zat={s.lockbox} decimals={2} /> · <Link href="/treasury" className="text-link hover:text-link-hover">Treasury →</Link>
           </p>
         </Card>
         <Card title="Daily issuance">

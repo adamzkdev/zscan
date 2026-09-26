@@ -8,7 +8,7 @@ import { int } from "@/lib/format";
 import type { Funding } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "Zcash Community Grants & Coinholder Lockbox",
+  title: "Zcash Treasury: Community Grants & Coinholder Fund",
   description: "On-chain flows to Zcash Community Grants and the coinholder-controlled fund, decoded from every coinbase.",
 };
 
@@ -17,7 +17,7 @@ export default async function FundingPage() {
   if (!f) return <IndexingStarting />;
   return (
     <div className="space-y-4">
-      <PageTitle title="Grants & Lockbox">
+      <PageTitle title="Treasury">
         Since NU6.1 (ZIP 1016), 8% of every block reward goes to Zcash Community Grants and 12% is deferred to a
         coinholder-controlled fund. These flows are decoded from each block&apos;s coinbase transaction.
       </PageTitle>
@@ -31,7 +31,7 @@ export default async function FundingPage() {
           sub={`from block ${int(f.indexed_from)}`}
         />
       </div>
-      <Card title="Daily grants and lockbox flows">
+      <Card title="Daily treasury flows">
         <StackedDaily
           data={f.daily.map((d) => ({ day: d.day, deferred: d.deferred, funding: d.funding }))}
           series={[

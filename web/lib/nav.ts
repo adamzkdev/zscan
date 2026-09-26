@@ -24,25 +24,25 @@ export const NAV: NavMenu[] = [
     ],
   },
   {
-    label: "Resources",
+    label: "Analytics",
     items: [
       { href: "/protocols", label: "Protocols" },
       { href: "/supply", label: "Supply & Issuance" },
-      { href: "/funding", label: "Grants & Lockbox" },
+      { href: "/treasury", label: "Treasury" },
       { href: "/fees", label: "Fee Tracker" },
       { href: "/charts", label: "Charts & Stats" },
       { href: "/miners", label: "Top Miners" },
       { href: "/network", label: "Network Stats" },
       { href: "/upgrades", label: "Network Upgrades" },
-      { href: "/status", label: "Status & Reorgs" },
     ],
   },
   {
-    label: "Developers",
+    label: "Resources",
     items: [
-      { href: "/developers", label: "API Overview" },
-      { href: "/api-docs", label: "API Documentation", external: true },
-      { href: "/openapi.json", label: "OpenAPI Spec", external: true },
+      { href: "/developers", label: "API Documentation" },
+      { href: "/brand", label: "Media Kit" },
+      { href: "/status", label: "Status" },
+      { href: "/privacy", label: "Privacy Policy" },
     ],
   },
 ];
