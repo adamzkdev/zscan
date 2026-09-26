@@ -67,13 +67,16 @@ export function Header({
           <LiveRefresh initialHeight={height} />
           <div className="ml-auto flex items-center gap-2">
             <HeaderSearch />
-            <a
-              href={other.url}
-              className="hidden whitespace-nowrap rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-muted hover:text-link sm:inline-block"
-              title={`Switch to ${other.label}`}
-            >
-              {network === "testnet" ? "Testnet" : "Mainnet"} ⇄ {other.label}
-            </a>
+            {/* Set TESTNET_URL (or MAINNET_URL) to an empty value to hide the switch. */}
+            {other.url && (
+              <a
+                href={other.url}
+                className="hidden whitespace-nowrap rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-muted hover:text-link sm:inline-block"
+                title={`Switch to ${other.label}`}
+              >
+                {network === "testnet" ? "Testnet" : "Mainnet"} ⇄ {other.label}
+              </a>
+            )}
             <ThemeToggle />
           </div>
         </div>
