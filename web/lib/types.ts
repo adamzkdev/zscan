@@ -1,0 +1,351 @@
+// Mirrors the ZScan API responses. Amounts are zatoshis.
+
+export type TxKind =
+  | "coinbase"
+  | "transparent"
+  | "shielding"
+  | "deshielding"
+  | "shielded"
+  | "migration"
+  | "mixed";
+
+export interface BlockSummary {
+  height: number;
+  hash: string;
+  time: string;
+  tx_count: number;
+  size: number;
+  fees: number | null;
+  miner: string | null;
+  miner_pool: string | null;
+  coinbase_value: number;
+}
+
+export interface TxRow {
+  txid: string;
+  height: number;
+  block_index: number;
+  time: string;
+  kind: TxKind;
+  fee: number | null;
+  size: number;
+  transparent_in: number;
+  transparent_out: number;
+  sapling_vb: number;
+  orchard_vb: number;
+  ironwood_vb: number;
+  n_tin: number;
+  n_tout: number;
+  n_sapling_spends: number;
+  n_sapling_outputs: number;
+  n_orchard_actions: number;
+  n_ironwood_actions: number;
+  from_address: string | null;
+  to_address: string | null;
+}
+
+export interface Price {
+  usd: number;
+  btc: number;
+  usd_24h_change: number;
+  market_cap_usd: number;
+  volume_24h_usd: number;
+  history: [number, number][];
+}
+
+export interface PoolValues {
+  transparent: number;
+  sprout: number;
+  sapling: number;
+  orchard: number;
+  ironwood: number;
+}
+
+export interface BlockDetail extends BlockSummary {
+  prev_hash: string;
+  next_hash: string | null;
+  confirmations: number | null;
+  coinbase_value: number;
+  sapling_tree_size: number | null;
+  orchard_tree_size: number | null;
+  ironwood_tree_size: number | null;
+  pool_deltas: PoolValues;
+  txs: TxRow[];
+  indexed: boolean;
+}
+
+export interface Action {
+  nullifier: string;
+  cmx: string;
+}
+
+export interface TxDetail {
+  txid: string;
+  status: "mined" | "mempool";
+  height: number | null;
+  block_hash: string | null;
+  time: string | null;
+  confirmations: number | null;
+  version: number;
+  size: number;
+  kind: TxKind;
+  fee: number | null;
+  transparent_in: number;
+  transparent_out: number;
+  value_balances: { sprout: number; sapling: number; orchard: number; ironwood: number };
+  lock_time: number;
+  expiry_height: number | null;
+  inputs: {
+    prev_txid: string | null;
+    prev_n: number | null;
+    value: number | null;
+    address: string | null;
+    coinbase: string | null;
+  }[];
+  outputs: {
+    n: number;
+    value: number;
+    address: string | null;
+    script: string;
+    op_return: string | null;
+    spent_by: { txid: string; n: number } | null;
+  }[];
+  joinsplits: number;
+  sapling_spends: string[];
+  sapling_outputs: string[];
+  orchard_actions: Action[];
+  ironwood_actions: Action[];
+}
+
+export interface AddressDetail {
+  address: string;
+  label: string | null;
+  blocks_mined: number;
+  balance: number;
+  received: number;
+  sent: number;
+  tx_count: number;
+  first_seen: string | null;
+  last_seen: string | null;
+  indexed_from: number | null;
+  txs: { txid: string; height: number; time: string; kind: TxKind; delta: number }[];
+}
+
+export interface PoolsCurrent {
+  height: number;
+  time: string;
+  pools: PoolValues;
+  lockbox: number;
+  supply: number;
+  shielded: number;
+  shielded_ratio: number;
+  change_24h: PoolValues;
+}
+
+export interface PoolPoint extends PoolValues {
+  time: string;
+  height: number;
+}
+
+export interface Migration {
+  activation_height: number;
+  snapshot_height: number;
+  orchard_now: number;
+  ironwood_now: number;
+  orchard_at_activation: number | null;
+  ironwood_before_activation: number | null;
+  migrated: number | null;
+  migrated_ratio: number | null;
+  indexed_from: number | null;
+  daily: { day: string; orchard_out: number; ironwood_in: number; migration_txs: number; exit_to_ironwood: number; exit_to_sapling: number; exit_to_transparent: number }[];
+  top: { txid: string; height: number; time: string; amount: number }[];
+  exits: { to_ironwood: number; to_sapling: number; to_transparent: number; fees: number; txs: number };
+  denominations: { amount: number; count: number }[];
+}
+
+export interface Network {
+  height: number | null;
+  difficulty: number | null;
+  solps: number | null;
+  avg_block_time: number | null;
+  txs_24h: number;
+  fees_24h: number;
+  shielded_tx_ratio_24h: number;
+  migrations_24h: number;
+}
+
+export interface Status {
+  chain_tip: number;
+  indexed_high: number | null;
+  indexed_low: number | null;
+  target_low: number;
+  backfill_progress: number;
+}
+
+export interface MempoolTx {
+  txid: string;
+  seen_at: string;
+  size: number;
+  kind: TxKind;
+  fee: number | null;
+  transparent_out: number;
+  n_actions: number;
+}
+
+export interface Mempool {
+  count: number;
+  total_size: number;
+  total_fees: number;
+  txs: MempoolTx[];
+}
+
+export interface DailyStats {
+  day: string;
+  blocks: number;
+  txs: number;
+  transparent: number;
+  shielding: number;
+  deshielding: number;
+  shielded: number;
+  migration: number;
+  mixed: number;
+  fees: number;
+  avg_block_size: number;
+}
+
+export interface Miner {
+  address: string;
+  pool: string | null;
+  tag: string | null;
+  blocks: number;
+  rewards: number;
+  fees: number;
+  last_block: number;
+  last_time: string;
+}
+
+export interface Miners {
+  period: string;
+  total_blocks: number;
+  nakamoto_coefficient: number;
+  top_share: number;
+  miners: Miner[];
+}
+
+export interface Account {
+  rank: number;
+  address: string;
+  balance: number;
+  share: number;
+  tx_count: number;
+  label: string | null;
+}
+
+export interface Accounts {
+  updated_at: string | null;
+  indexed_from: number | null;
+  accounts: Account[];
+}
+
+export interface AuditSummary {
+  checks: number;
+  failed: number;
+  last_height: number | null;
+  last_checked: string | null;
+}
+
+export interface Supply {
+  height: number;
+  supply: number;
+  max_supply: number;
+  lockbox: number;
+  block_subsidy: number;
+  block_to_miner: number;
+  block_to_funding: number;
+  block_to_lockbox: number;
+  issued_24h: number;
+  inflation_rate: number;
+  burned_total: number;
+  next_halving_height: number | null;
+  next_halving_eta: string | null;
+  avg_block_time: number | null;
+  audit: AuditSummary;
+  daily: { day: string; blocks: number; issued: number; to_miners: number; to_funding: number; to_lockbox: number; fees: number; burned: number }[];
+}
+
+export interface AuditCheck {
+  height: number;
+  prev_height: number;
+  checked_at: string;
+  diff_transparent: number;
+  diff_sprout: number;
+  diff_sapling: number;
+  diff_orchard: number;
+  diff_ironwood: number;
+  diff_lockbox: number;
+  diff_supply: number;
+  ok: boolean;
+}
+
+export interface Audit {
+  summary: AuditSummary;
+  method: string;
+  checks: AuditCheck[];
+}
+
+export interface Funding {
+  height: number;
+  lockbox_balance: number;
+  recipients: string[];
+  per_block_funding: number;
+  per_block_deferred: number;
+  total_funding: number;
+  total_deferred: number;
+  indexed_from: number | null;
+  daily: { day: string; funding: number; deferred: number; blocks: number }[];
+}
+
+export interface Anonymity {
+  height: number;
+  sapling: number;
+  orchard: number;
+  ironwood: number;
+  sapling_24h: number;
+  orchard_24h: number;
+  ironwood_24h: number;
+  daily: { day: string; sapling: number | null; orchard: number | null; ironwood: number | null }[];
+}
+
+export interface Fees {
+  marginal_fee: number;
+  grace_actions: number;
+  standard_fee: number;
+  examples: { label: string; logical_actions: number; fee: number }[];
+  median_fee: number | null;
+  median_fee_per_action: number | null;
+  conventional_share: number;
+  avg_block_fullness: number;
+  mempool_count: number;
+  mempool_fees: number;
+  mempool_bytes: number;
+  fits_next_block: boolean;
+}
+
+export interface Health {
+  network: string;
+  node_tip: number | null;
+  indexed_tip: number | null;
+  lag_blocks: number | null;
+  last_block_time: string | null;
+  last_snapshot_time: string | null;
+  lightwalletd_ok: boolean;
+  audit_checks: number;
+  audit_failed: number;
+  reorgs: { detected_at: string; height: number; old_hash: string; new_hash: string }[];
+}
+
+export interface UnifiedAddress {
+  address: string;
+  network: string;
+  receivers: { kind: string; pools: string; address: string | null; raw: string }[];
+}

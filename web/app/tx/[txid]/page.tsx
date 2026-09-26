@@ -1,0 +1,278 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { CopyButton, Hash } from "@/components/Hash";
+import { ArrowRightIcon, ClockIcon, ShieldIcon } from "@/components/icons";
+import { KindBadge } from "@/components/KindBadge";
+import { TimeAgo } from "@/components/TimeAgo";
+import { Card, PageTitle, Pill, Rows, Zec } from "@/components/ui";
+import { apiOrNull } from "@/lib/api";
+import { bytes, short, utc, zec } from "@/lib/format";
+import type { Action, TxDetail } from "@/lib/types";
+
+export async function generateMetadata(props: PageProps<"/tx/[txid]">): Promise<Metadata> {
+  const { txid } = await props.params;
+  return { title: `Zcash Transaction Hash (Txhash) Details ${short(txid, 8, 6)}` };
+}
+
+const POOLS = [
+  ["ironwood", "Ironwood", "var(--pool-ironwood)"],
+  ["orchard", "Orchard", "var(--pool-orchard)"],
+  ["sapling", "Sapling", "var(--pool-sapling)"],
+  ["sprout", "Sprout", "var(--pool-sprout)"],
+] as const;
+
+/** One-line human summary, like Etherscan's "Transaction Action". */
+function action(t: TxDetail) {
+  const vb = t.value_balances;
+  switch (t.kind) {
+    case "migration":
+      return <>Migrate <Zec zat={vb.orchard} /> from <b>Orchard</b> to <b>Ironwood</b></>;
+    case "shielding": {
+      const into = POOLS.filter(([k]) => vb[k] < 0).map(([, l]) => l).join(" + ") || "a shielded pool";
+      const amt = -POOLS.reduce((s, [k]) => s + Math.min(vb[k], 0), 0);
+      return <>Shield <Zec zat={amt} /> into <b>{into}</b></>;
+    }
+    case "deshielding": {
+      const from = POOLS.filter(([k]) => vb[k] > 0).map(([, l]) => l).join(" + ") || "a shielded pool";
+      return <>Unshield <Zec zat={t.transparent_out} /> from <b>{from}</b> to transparent addresses</>;
+    }
+    case "shielded":
+      return <>Private transfer inside the shielded pools. Amount and parties are encrypted.</>;
+    case "coinbase":
+      return <>Block reward of <Zec zat={t.transparent_out} /> paid to the miner</>;
+    case "transparent":
+      return <>Transfer <Zec zat={t.transparent_out} /> between transparent addresses</>;
+    default:
+      return <>Transparent and shielded value flows</>;
+  }
+}
+
+export default async function TxPage(props: PageProps<"/tx/[txid]">) {
+  const { txid } = await props.params;
+  const t = await apiOrNull<TxDetail>(`/v1/tx/${encodeURIComponent(txid)}`);
+  if (!t) notFound();
+
+  const shieldedCount = t.sapling_spends.length + t.sapling_outputs.length + t.orchard_actions.length + t.ironwood_actions.length + t.joinsplits;
+  const from = t.inputs.find((i) => i.address)?.address;
+  const to = t.outputs.find((o) => o.address)?.address;
+
+  return (
+    <div className="space-y-4">
+      <PageTitle title="Transaction Details" />
+      <div className="flex gap-2 text-sm">
+        <a href="#overview" className="rounded-lg bg-link px-3 py-1.5 font-medium text-white">Overview</a>
+        {shieldedCount > 0 && (
+          <a href="#shielded" className="rounded-lg bg-surface-2 px-3 py-1.5 text-text hover:text-link">
+            Shielded Data ({shieldedCount})
+          </a>
+        )}
+      </div>
+
+      <Card pad={false} className="scroll-mt-32">
+        <div id="overview" />
+        <Rows
+          rows={[
+            ["Transaction Hash", <span key="h" className="inline-flex items-center gap-1.5 break-all font-mono">{t.txid}<CopyButton value={t.txid} /></span>, "A unique identifier generated whenever a transaction is executed."],
+            [
+              "Status",
+              t.status === "mined" ? <Pill key="s" tone="good">✓ Success</Pill> : <Pill key="s" tone="warn">Pending</Pill>,
+              "The status of the transaction.",
+            ],
+            [
+              "Block",
+              t.height != null ? (
+                <span key="b" className="flex flex-wrap items-center gap-2">
+                  <Link href={`/block/${t.height}`} className="text-link hover:text-link-hover">{t.height}</Link>
+                  <Pill>{t.confirmations} Block Confirmation{t.confirmations === 1 ? "" : "s"}</Pill>
+                </span>
+              ) : (
+                "(Pending)"
+              ),
+              "Block number in which this transaction was recorded.",
+            ],
+            [
+              "Timestamp",
+              t.time ? (
+                <span key="t" className="flex items-center gap-1.5">
+                  <ClockIcon /> <TimeAgo iso={t.time} /> <span className="text-muted">({utc(t.time)})</span>
+                </span>
+              ) : (
+                "—"
+              ),
+              "Date and time at which the transaction was mined.",
+            ],
+            ["Transaction Action", <span key="a" className="flex flex-wrap items-center gap-1.5"><KindBadge kind={t.kind} /> {action(t)}</span>, "Highlights what the transaction does."],
+          ]}
+        />
+        <div className="border-t border-border" />
+        <Rows
+          rows={[
+            [
+              "From",
+              t.inputs.length ? (
+                from ? <Hash key="f" value={from} href={`/address/${from}`} full /> : t.inputs[0].coinbase != null ? "New coins (coinbase)" : "—"
+              ) : (
+                <span key="f" className="inline-flex items-center gap-1.5 text-ironwood"><ShieldIcon /> Shielded pool</span>
+              ),
+              "The sending party. Shielded senders are not visible on-chain.",
+            ],
+            [
+              "To",
+              t.outputs.length ? (
+                to ? <Hash key="to" value={to} href={`/address/${to}`} full /> : "—"
+              ) : (
+                <span key="to" className="inline-flex items-center gap-1.5 text-ironwood"><ShieldIcon /> Shielded pool</span>
+              ),
+              "The receiving party. Shielded recipients are not visible on-chain.",
+            ],
+          ]}
+        />
+        <div className="border-t border-border" />
+        <Rows
+          rows={[
+            ["Value", t.kind === "shielded" ? <span key="v" className="text-ironwood">Hidden (fully shielded)</span> : <Zec key="v" zat={t.transparent_out} showUsd />, "Transparent value transferred. Shielded amounts are encrypted."],
+            ["Transaction Fee", <Zec key="f" zat={t.fee} showUsd />, "Amount paid to the miner for processing the transaction."],
+          ]}
+        />
+        <div className="border-t border-border" />
+        <Rows
+          rows={[
+            ["Tx Version", `v${t.version}${t.version === 6 ? " (NU6.3)" : ""}`],
+            ["Size", bytes(t.size)],
+            ["Expiry Height", t.expiry_height ? String(t.expiry_height) : "none"],
+          ]}
+        />
+      </Card>
+
+      {(t.inputs.length > 0 || t.outputs.length > 0) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card title={`Transparent Inputs (${t.inputs.length})`} pad={false}>
+            <ul className="divide-y divide-border">
+              {t.inputs.map((i, n) => (
+                <li key={n} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  {i.coinbase != null ? (
+                    <span className="text-muted">Coinbase (newly minted)</span>
+                  ) : (
+                    <div className="min-w-0">
+                      {i.address ? <Hash value={i.address} href={`/address/${i.address}`} head={10} tail={8} /> : <span className="text-faint">unknown</span>}
+                      <p className="text-xs text-faint">
+                        <Link href={`/tx/${i.prev_txid}`} className="font-mono hover:text-link">{short(i.prev_txid!, 8, 4)}:{i.prev_n}</Link>
+                      </p>
+                    </div>
+                  )}
+                  <Zec zat={i.value} />
+                </li>
+              ))}
+              {!t.inputs.length && <li className="px-4 py-3 text-sm text-muted">None, funded from shielded pools.</li>}
+            </ul>
+          </Card>
+          <Card title={`Transparent Outputs (${t.outputs.length})`} pad={false}>
+            <ul className="divide-y divide-border">
+              {t.outputs.map((o) => (
+                <li key={o.n} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <div className="min-w-0">
+                    {o.address ? (
+                      <Hash value={o.address} href={`/address/${o.address}`} head={10} tail={8} />
+                    ) : o.op_return != null ? (
+                      <span className="block">
+                        <Pill tone="info">OP_RETURN</Pill>{" "}
+                        <span className="break-all font-mono text-xs">{opReturnText(o.op_return)}</span>
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs text-faint">script {short(o.script, 8, 4)}</span>
+                    )}
+                    <p className="text-xs text-faint">
+                      {o.spent_by ? (
+                        <Link href={`/tx/${o.spent_by.txid}`} className="hover:text-link">spent in {short(o.spent_by.txid, 8, 4)}</Link>
+                      ) : (
+                        "unspent (within index)"
+                      )}
+                    </p>
+                  </div>
+                  <Zec zat={o.value} />
+                </li>
+              ))}
+              {!t.outputs.length && <li className="px-4 py-3 text-sm text-muted">None, all value stays shielded.</li>}
+            </ul>
+          </Card>
+        </div>
+      )}
+
+      {shieldedCount > 0 && (
+        <section id="shielded" className="scroll-mt-32 space-y-4">
+          <Card title="Shielded Pools">
+            <p className="mb-3 text-sm text-muted">
+              Amounts, senders and recipients inside shielded pools are encrypted. Only the net value entering or leaving each pool is public.
+            </p>
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {POOLS.map(([k, label, color]) => {
+                const vb = t.value_balances[k];
+                const n = k === "sapling" ? t.sapling_spends.length + t.sapling_outputs.length : k === "orchard" ? t.orchard_actions.length : k === "ironwood" ? t.ironwood_actions.length : t.joinsplits;
+                if (!n && !vb) return null;
+                return (
+                  <li key={k} className="rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+                    <p className="flex items-center gap-1.5 text-xs text-muted">
+                      <span className="size-2 rounded-sm" style={{ background: color }} /> {label} · {n}{" "}
+                      {k === "sapling" ? "spends/outputs" : k === "sprout" ? "joinsplits" : n === 1 ? "action" : "actions"}
+                    </p>
+                    <p className="num mt-1 flex items-center gap-1 font-medium">
+                      {vb < 0 ? "+" : vb > 0 ? "−" : ""}
+                      <Zec zat={Math.abs(vb)} />
+                    </p>
+                    <p className="text-[11px] text-faint">net change to the pool</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+          {t.ironwood_actions.length > 0 && <ActionList title="Ironwood Actions" actions={t.ironwood_actions} />}
+          {t.orchard_actions.length > 0 && <ActionList title="Orchard Actions" actions={t.orchard_actions} />}
+          {t.sapling_spends.length + t.sapling_outputs.length > 0 && (
+            <Card title="Sapling" pad={false}>
+              <ul className="divide-y divide-border font-mono text-xs">
+                {t.sapling_spends.map((n) => (
+                  <li key={n} className="break-all px-4 py-2"><span className="mr-2 text-muted">nullifier</span>{n}</li>
+                ))}
+                {t.sapling_outputs.map((c) => (
+                  <li key={c} className="break-all px-4 py-2"><span className="mr-2 text-muted">cmu</span>{c}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </section>
+      )}
+      <p className="flex items-center gap-1.5 text-xs text-muted">
+        <ArrowRightIcon size={12} /> Fee: {zec(t.fee)} ZEC · Transparent in {zec(t.transparent_in)} / out {zec(t.transparent_out)} ZEC
+      </p>
+    </div>
+  );
+}
+
+/** OP_RETURN payload as text when printable, hex otherwise. */
+function opReturnText(hex: string) {
+  const bytes = hex.match(/../g)?.map((b) => parseInt(b, 16)) ?? [];
+  const printable = bytes.length > 0 && bytes.every((b) => b >= 32 && b < 127);
+  return printable ? `"${String.fromCharCode(...bytes)}"` : hex || "(empty)";
+}
+
+function ActionList({ title, actions }: { title: string; actions: Action[] }) {
+  return (
+    <Card title={`${title} (${actions.length})`} pad={false}>
+      <p className="border-b border-border px-4 py-2 text-xs text-muted">
+        Each action spends one note and creates one note. Nullifiers prevent double spends; commitments add new notes to the tree. Neither reveals amounts or addresses.
+      </p>
+      <ul className="divide-y divide-border font-mono text-xs">
+        {actions.map((a, i) => (
+          <li key={i} className="grid gap-1 px-4 py-2.5 md:grid-cols-[60px_1fr]">
+            <span className="text-muted">#{i}</span>
+            <div className="min-w-0 space-y-0.5 break-all">
+              <p><span className="mr-2 text-faint">nullifier</span>{a.nullifier}</p>
+              <p><span className="mr-2 text-faint">cmx</span>{a.cmx}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}

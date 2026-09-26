@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* Theme: light by default, dark via OS preference ("system") or an explicit data-theme. */
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface-2: #f8f9fa;
+  --border: #e9ecef;
+  --border-strong: #dee2e6;
+  --text: #212529;
+  --muted: #6c757d;
+  --faint: #8c98a4;
+  --link: #0784c3;
+  --link-hover: #065a8c;
+  --hero: #21325b;
+  --hero-2: #2d4476;
+  --accent: #f4b728;
+  --shadow: 0 0.5rem 1.2rem rgba(189, 197, 209, 0.2);
+  --good: #00a186;
+  --good-bg: rgba(0, 161, 134, 0.1);
+  --bad: #dc3545;
+  --warn: #b47d00;
+  --ironwood-ink: #0f8a5f;
+  /* Chart palette, validated for adjacent colorblind separation on light surfaces. */
+  --pool-ironwood: #1baf7a;
+  --pool-orchard: #eb6834;
+  --pool-sapling: #2a78d6;
+  --pool-transparent: #eda100;
+  --pool-sprout: #4a3aa7;
+  --pool-lockbox: #e87ba4;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface-2: #1e1e1e;
+    --border: #262626;
+    --border-strong: #333333;
+    --text: #f1f1f1;
+    --muted: #a3a3a3;
+    --faint: #737373;
+    --link: #4ea8de;
+    --link-hover: #82c3ea;
+    --hero: #0f1a30;
+    --hero-2: #17284a;
+    --shadow: none;
+    --good: #2fbf9c;
+    --good-bg: rgba(47, 191, 156, 0.12);
+    --bad: #f06b76;
+    --warn: #e0b043;
+    --ironwood-ink: #3ddc97;
+    --pool-ironwood: #199e70;
+    --pool-orchard: #d95926;
+    --pool-sapling: #3987e5;
+    --pool-transparent: #c98500;
+    --pool-sprout: #9085e9;
+    --pool-lockbox: #d55181;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --surface-2: #1e1e1e;
+  --border: #262626;
+  --border-strong: #333333;
+  --text: #f1f1f1;
+  --muted: #a3a3a3;
+  --faint: #737373;
+  --link: #4ea8de;
+  --link-hover: #82c3ea;
+  --hero: #0f1a30;
+  --hero-2: #17284a;
+  --shadow: none;
+  --good: #2fbf9c;
+  --good-bg: rgba(47, 191, 156, 0.12);
+  --bad: #f06b76;
+  --warn: #e0b043;
+  --ironwood-ink: #3ddc97;
+  --pool-ironwood: #199e70;
+  --pool-orchard: #d95926;
+  --pool-sapling: #3987e5;
+  --pool-transparent: #c98500;
+  --pool-sprout: #9085e9;
+  --pool-lockbox: #d55181;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-hero: var(--hero);
+  --color-accent: var(--accent);
+  --color-transparent-pool: var(--pool-transparent);
+  --color-sprout: var(--pool-sprout);
+  --color-sapling: var(--pool-sapling);
+  --color-orchard: var(--pool-orchard);
+  --color-ironwood: var(--ironwood-ink);
+  --color-ironwood-mark: var(--pool-ironwood);
+  --color-lockbox: var(--pool-lockbox);
+  --color-good: var(--good);
+  --color-good-bg: var(--good-bg);
+  --color-bad: var(--bad);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-roboto);
+  --font-mono: var(--font-mono-face);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  overflow-x: clip;
+  font-family: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem;
+}
+
+/* Tailwind v4 resets buttons to the default cursor; restore the hand on interactive elements. */
+button:not(:disabled),
+[role="button"],
+[role="menuitem"],
+[role="option"],
+select,
+summary,
+label[for] {
+  cursor: pointer;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--link) 25%, transparent);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow);
+}
+
+/* Etherscan-style hero band with a faint dotted pattern. */
+.hero-band {
+  background-color: var(--hero);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.07) 1px, transparent 0),
+    linear-gradient(120deg, var(--hero) 0%, var(--hero-2) 100%);
+  background-size: 22px 22px, 100% 100%;
+}
+
+@keyframes row-in {
+  from {
+    background-color: color-mix(in oklab, var(--link) 10%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
