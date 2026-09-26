@@ -20,7 +20,7 @@ export default async function NetworkPage() {
         <Stat label="Height" value={int(status.chain_tip)} />
         <Stat label="Hashrate" value={hashrate(net.solps)} sub="estimated from difficulty" />
         <Stat label="Difficulty" value={net.difficulty ? `${(net.difficulty / 1e6).toFixed(1)}M` : "—"} />
-        <Stat label="Avg block time" value={net.avg_block_time ? `${net.avg_block_time.toFixed(1)}s` : "—"} sub="last 100 blocks · target 75s" />
+        <Stat label="Avg block time" value={net.avg_block_time ? `${net.avg_block_time.toFixed(1)}s` : "—"} sub={`last 100 blocks · target ${net.target_block_time}s`} />
         <Stat label="Transactions 24h" value={int(net.txs_24h)} />
         <Stat label="Shielded share 24h" value={pct(net.shielded_tx_ratio_24h)} sub="txs touching a shielded pool" accent="var(--ironwood-ink)" />
         <Stat label="Fees 24h" value={`${zec(net.fees_24h, 4)} ZEC`} />

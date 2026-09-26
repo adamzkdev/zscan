@@ -168,6 +168,7 @@ export interface Network {
   difficulty: number | null;
   solps: number | null;
   avg_block_time: number | null;
+  target_block_time: number;
   txs_24h: number;
   fees_24h: number;
   shielded_tx_ratio_24h: number;
@@ -269,6 +270,8 @@ export interface Supply {
   next_halving_height: number | null;
   next_halving_eta: string | null;
   avg_block_time: number | null;
+  target_block_time: number;
+  economics_pending: boolean;
   audit: AuditSummary;
   daily: { day: string; blocks: number; issued: number; to_miners: number; to_funding: number; to_lockbox: number; fees: number; burned: number }[];
 }
@@ -348,4 +351,26 @@ export interface UnifiedAddress {
   address: string;
   network: string;
   receivers: { kind: string; pools: string; address: string | null; raw: string }[];
+}
+
+export interface Upgrade {
+  name: string;
+  label: string;
+  activation_height: number | null;
+  activated: boolean;
+  activated_at: string | null;
+  blocks_remaining: number | null;
+  eta: string | null;
+  announced_date: string | null;
+  target_block_time: number;
+  summary: string | null;
+}
+
+export interface Upgrades {
+  network: "mainnet" | "testnet";
+  height: number | null;
+  current: string | null;
+  next: string | null;
+  economics_pending: boolean;
+  upgrades: Upgrade[];
 }

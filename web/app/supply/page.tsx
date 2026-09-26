@@ -33,6 +33,13 @@ export default async function SupplyPage() {
         Computed from Zcash consensus rules for every block, and reconciled against the node.
       </PageTitle>
 
+      {s.economics_pending && (
+        <p className="card border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+          The chain is past a network upgrade whose new issuance rules ZScan is still adding. Per-block
+          issuance and recent inflation are incomplete until then; balances and the supply itself are
+          read from the node and stay exact.
+        </p>
+      )}
       <section className="card grid gap-6 p-6 lg:grid-cols-[1.3fr_1fr]">
         <div>
           <p className="flex items-center gap-2 text-sm text-muted">
@@ -54,12 +61,12 @@ export default async function SupplyPage() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Stat label="Annual inflation" value={pct(s.inflation_rate, 2)} sub="issuance over last 24h × 365" />
-          <Stat label="Issued (24h)" value={<Zec zat={s.issued_24h} decimals={2} />} sub={`${int(Math.round(86400 / (s.avg_block_time ?? 75)))} blocks/day`} />
-          <Stat label="Burned (fee removal)" value={<Zec zat={s.burned_total} decimals={4} />} sub="NU7 activates Nov 5, 2026" />
+          <Stat label="Issued (24h)" value={<Zec zat={s.issued_24h} decimals={2} />} sub={`${int(Math.round(86400 / s.target_block_time))} blocks/day`} />
+          <Stat label="Burned (fee removal)" value={<Zec zat={s.burned_total} decimals={4} />} sub={<Link href="/upgrades" className="hover:text-link">NU7 fee removal · see upgrades</Link>} />
           <Stat
             label="Next halving"
             value={s.next_halving_eta ? <Countdown target={s.next_halving_eta} /> : "—"}
-            sub={s.next_halving_height ? `block ${int(s.next_halving_height)} (at current block time)` : undefined}
+            sub={s.next_halving_height ? `block ${int(s.next_halving_height)} (projected at target block time)` : undefined}
           />
         </div>
       </section>

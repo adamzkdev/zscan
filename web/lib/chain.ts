@@ -14,7 +14,9 @@ export async function chainContext(): Promise<ChainContext> {
   return {
     tip: health.indexed_tip ?? health.node_tip ?? 0,
     lastBlockAt: health.last_block_time,
-    blockTime: net.avg_block_time ?? 75,
+    // The recent average reacts to luck and hashrate; right after an upgrade that changes the
+    // target (NU7), the target is the better guide.
+    blockTime: net.avg_block_time && Math.abs(net.avg_block_time / net.target_block_time - 1) < 0.5 ? net.avg_block_time : net.target_block_time,
     marginalFee: fees.marginal_fee,
     graceActions: fees.grace_actions,
     fitsNextBlock: fees.fits_next_block,

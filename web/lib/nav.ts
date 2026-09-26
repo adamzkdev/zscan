@@ -31,6 +31,7 @@ export const NAV: NavMenu[] = [
       { href: "/charts", label: "Charts & Stats" },
       { href: "/miners", label: "Top Miners" },
       { href: "/network", label: "Network Stats" },
+      { href: "/upgrades", label: "Network Upgrades" },
       { href: "/status", label: "Status & Reorgs" },
     ],
   },
