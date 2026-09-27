@@ -97,7 +97,13 @@ export default async function InscriptionPage(props: PageProps<"/inscription/[id
               i.collection && i.item ? ["Inscription", <span key="n" className="num">#{int(i.number)}</span>, "Sequence number among all Zcash inscriptions."] : null,
               ["Owner", owner, "Holder of the transparent output that currently carries the inscription."],
               i.location ? ["Output", <Link key="o" href={`/tx/${i.location.split(":")[0]}`} className="break-all font-mono text-xs text-link hover:text-link-hover">{i.location}</Link>, "The carrying output (txid:vout)."] : null,
-              i.ipfs ? ["Image", <span key="ip" className="break-all font-mono text-xs">ipfs://{i.ipfs}</span>, "The image lives on IPFS; the chain holds a pointer to it. ZScan relays it so your browser never contacts IPFS."] : null,
+              i.ipfs
+                ? [
+                    "Image",
+                    <span key="ip" className="break-all font-mono text-xs">{i.ipfs.startsWith("https://") ? i.ipfs : `ipfs://${i.ipfs}`}</span>,
+                    "The image lives off chain; the chain holds a pointer to it. ZScan relays it so your browser never contacts that host.",
+                  ]
+                : null,
               ["Content type", <span key="ct" className="font-mono">{i.content_type}</span>],
               ["Size", bytes(i.content_len)],
               ["SHA-256", <span key="h" className="break-all font-mono text-xs">{i.sha256}</span>, "Hash of the reassembled content."],
