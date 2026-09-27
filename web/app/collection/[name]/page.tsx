@@ -37,7 +37,9 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
   const cursor = Number(sp.cursor) || undefined;
   const page = Math.max(0, Number(sp.page) || 0);
   const sort = typeof sp.sort === "string" && SORTS.some(([s]) => s === sp.sort) ? sp.sort : "id";
+  const art = sp.view === "art";
   const qs = new URLSearchParams();
+  if (art) qs.set("view", "art");
   if (cursor) qs.set("cursor", String(cursor));
   if (page) qs.set("page", String(page));
   if (sort !== "id") qs.set("sort", sort);
@@ -168,9 +170,60 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
       </Card>
 
       {o && (
-        <Card title="Items" pad={false}>
-          <div className="p-4">{c.items_page.length ? <InscriptionGrid items={c.items_page} /> : <Empty>No items.</Empty>}</div>
-          {(cursor || c.next) && (
+        <Card
+          title={art ? `All artworks (${int(c.artworks_total ?? 0)})` : `Minted items (${int(o.unique_items)})`}
+          pad={false}
+          action={
+            c.artworks_total ? (
+              <div className="flex gap-1.5 text-xs">
+                <Link href={base} className={`rounded-md border px-2 py-0.5 ${!art ? "border-link bg-link text-white" : "border-border hover:text-link"}`}>
+                  Minted
+                </Link>
+                <Link href={`${base}?view=art`} className={`rounded-md border px-2 py-0.5 ${art ? "border-link bg-link text-white" : "border-border hover:text-link"}`}>
+                  All artworks
+                </Link>
+              </div>
+            ) : undefined
+          }
+        >
+          {art ? (
+            <>
+              <p className="border-b border-border px-4 py-2 text-xs text-muted">
+                Every artwork the collection declares, from its metadata. {int(o.unique_items)} of {int(c.artworks_total ?? 0)} have been minted on Zcash; the others are still available to mint.
+              </p>
+              <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                {c.artworks.map((a) => {
+                  const inner = (
+                    <>
+                      <div className="aspect-square border-b border-border bg-surface-2">
+                        <NftImage src={a.image} fallback={a.name} />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 px-3 py-2">
+                        <span className="num truncate text-sm font-medium">{a.name}</span>
+                        <span className={`shrink-0 text-[11px] ${a.inscription ? "text-good" : "text-muted"}`}>{a.inscription ? "Minted" : "Available"}</span>
+                      </div>
+                    </>
+                  );
+                  return a.inscription ? (
+                    <Link key={a.id} href={`/inscription/${a.inscription}`} className="card block overflow-hidden hover:border-link">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div key={a.id} className="card overflow-hidden opacity-80">
+                      {inner}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
+                {page > 0 && <Link href={`${base}?view=art&page=${page - 1}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">‹ Prev</Link>}
+                {(page + 1) * 48 < (c.artworks_total ?? 0) && <Link href={`${base}?view=art&page=${page + 1}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}
+              </div>
+            </>
+          ) : (
+            <div className="p-4">{c.items_page.length ? <InscriptionGrid items={c.items_page} /> : <Empty>No items.</Empty>}</div>
+          )}
+          {!art && (cursor || c.next) && (
             <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
               {cursor && <Link href={base} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">« First</Link>}
               {c.next && <Link href={`${base}?cursor=${c.next}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}

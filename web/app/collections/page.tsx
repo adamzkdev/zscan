@@ -50,6 +50,24 @@ export default async function CollectionsPage() {
         Zcash NFT collections, newest first. On-chain collections are read from the chain (items, owners, sales); collections
         kept by a marketplace show that marketplace&apos;s figures. Each page lists its sources.
       </PageTitle>
+      <p className="-mt-2 text-sm">
+        Missing a collection?{" "}
+        <a
+          href="https://github.com/adamzkdev/zscan-nft-registry/issues/new?template=collection.yml"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-link hover:text-link-hover"
+        >
+          Submit it
+        </a>{" "}
+        <span className="text-muted">
+          through the{" "}
+          <a href="https://github.com/adamzkdev/zscan-nft-registry" target="_blank" rel="noopener noreferrer" className="hover:text-link">
+            public registry
+          </a>
+          .
+        </span>
+      </p>
 
       {rows.length ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

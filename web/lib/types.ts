@@ -681,6 +681,9 @@ export interface CollectionDetail extends CollectionRow {
   venue_items: VenueItem[];
   venue_total: number | null;
   venue_sales: VenueSale[];
+  /** With view=art: every artwork of a ZRC-721 collection, minted or not. */
+  artworks: { id: string; name: string; image: string; inscription: string | null }[];
+  artworks_total: number | null;
 }
 
 export interface AddressInscriptions {

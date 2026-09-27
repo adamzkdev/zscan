@@ -18,11 +18,8 @@ export const NAV: NavMenu[] = [
     ],
   },
   {
-    label: "NFTs",
-    items: [
-      { href: "/inscriptions", label: "Inscriptions" },
-      { href: "/collections", label: "Collections" },
-    ],
+    label: "Tokens",
+    items: [{ href: "/collections", label: "Collections" }],
   },
   {
     label: "Shielded",
