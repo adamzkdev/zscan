@@ -563,40 +563,96 @@ export interface InscriptionDetail extends InscriptionRow {
   next: string | null;
 }
 
-export interface MarketStats {
+export interface Link {
+  label: string;
+  url: string;
+}
+
+/** Where a project's items live, which bounds what ZScan can verify. */
+export type NftKind = "inscription" | "marketplace" | "zsa-testnet" | "other-chain" | "upcoming";
+
+export interface ProjectInfo {
+  description: string;
+  website: string | null;
+  x: string | null;
+  discord: string | null;
+  telegram: string | null;
+  minted_at: string | null;
+  mint_price_zec: number | null;
+  marketplaces: Link[];
+  confidence: "verified" | "likely";
+  sources: Link[];
+}
+
+export interface CollectionOnchain {
+  kind: "zrc721" | "drop";
+  key: string;
+  items: number;
+  unique_items: number;
+  holders: number;
+  shielded: number;
+  deployed: boolean;
+  deploy_inscription: string | null;
+  creator: string | null;
+  first_time: string;
+  last_time: string;
+  sales: number;
+  volume: number;
+  last_price: number | null;
+}
+
+/** As the marketplace reports it; amounts in zatoshis. */
+export interface VenueStats {
   venue: string;
   url: string;
   floor: number | null;
   listings: number | null;
   volume: number | null;
   sales: number | null;
+  volume_24h: number | null;
+  sales_24h: number | null;
+  owners: number | null;
+  minted: number | null;
 }
 
 export interface CollectionRow {
-  /** `zrc721` (declared on chain) or `drop` (launchpad mints grouped by their commit payments). */
-  kind: "zrc721" | "drop";
   slug: string;
   name: string;
-  name_source: string | null;
+  kind: NftKind;
   supply: number | null;
-  items: number;
-  /** Distinct item ids or images: duplicate mints count once. */
-  unique_items: number;
-  holders: number;
-  shielded: number;
-  deployed: boolean;
-  deploy_inscription: string | null;
-  deployer: string | null;
-  cover: string | null;
-  first_time: string;
-  last_time: string;
-  /** Marketplace sales detected on chain. */
-  sales: number;
-  volume: number;
-  last_price: number | null;
-  website: string | null;
-  twitter: string | null;
-  market: MarketStats | null;
+  /** API path of the collection picture. */
+  image: string | null;
+  project: ProjectInfo | null;
+  onchain: CollectionOnchain | null;
+  market: VenueStats | null;
+}
+
+export interface Trait {
+  trait_type: string;
+  value: string;
+}
+
+export interface VenueItem {
+  id: string;
+  name: string;
+  traits: Trait[];
+  rank: number | null;
+  ask: number | null;
+  last: number | null;
+  url: string;
+}
+
+export interface VenueItemDetail extends VenueItem {
+  description: string | null;
+  minted_at: string | null;
+  history: { kind: string; price: number | null; time: string | null }[];
+}
+
+export interface VenueSale {
+  item_id: string;
+  name: string;
+  price: number;
+  time: string;
 }
 
 export interface NftSale {
@@ -619,20 +675,9 @@ export interface CollectionDetail extends CollectionRow {
   next: number | null;
   holders_list: { address: string; count: number }[];
   recent_sales: NftSale[];
-}
-
-export interface OffchainCollection {
-  name: string;
-  venue: string;
-  url: string;
-  supply: number | null;
-  floor_zec: string | null;
-  volume_24h_zec: string | null;
-  volume_total_zec: string | null;
-  sales_24h: number | null;
-  sales_total: number | null;
-  image: string | null;
-  updated_at: string | null;
+  venue_items: VenueItem[];
+  venue_total: number | null;
+  venue_sales: VenueSale[];
 }
 
 export interface AddressInscriptions {

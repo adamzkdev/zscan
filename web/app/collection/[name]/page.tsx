@@ -1,152 +1,296 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { Hash } from "@/components/Hash";
 import { InscriptionGrid } from "@/components/Inscription";
+import { NftImage } from "@/components/NftImage";
+import { Badges, KIND_NOTE, ProjectLinks } from "@/components/NftProject";
 import { NftSalesTable } from "@/components/NftSales";
 import { TimeAgo } from "@/components/TimeAgo";
-import { Card, Empty, PageTitle, Pill, Rows, Stat, tableHead, td, th, Zec } from "@/components/ui";
+import { Card, Empty, PageTitle, Rows, Stat, tableHead, td, th, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { int, utc } from "@/lib/format";
 import type { CollectionDetail } from "@/lib/types";
 
+async function load(name: string, qs = "") {
+  return apiOrNull<CollectionDetail>(`/v1/collections/${encodeURIComponent(decodeURIComponent(name))}${qs}`);
+}
+
 export async function generateMetadata(props: PageProps<"/collection/[name]">): Promise<Metadata> {
   const { name } = await props.params;
-  const c = await apiOrNull<CollectionDetail>(`/v1/collections/${encodeURIComponent(decodeURIComponent(name))}`);
-  return { title: `${c?.name ?? decodeURIComponent(name)} (NFT collection)` };
+  const c = await load(name);
+  return { title: c ? `${c.name} NFT collection` : "NFT collection", description: c?.project?.description };
 }
+
+const SORTS: [string, string][] = [
+  ["id", "Number"],
+  ["rank", "Rarity"],
+  ["price", "Price"],
+];
+
+type Row = [ReactNode, ReactNode] | [ReactNode, ReactNode, string] | null;
 
 export default async function CollectionPage(props: PageProps<"/collection/[name]">) {
   const { name } = await props.params;
   const sp = await props.searchParams;
   const cursor = Number(sp.cursor) || undefined;
-  const slug = decodeURIComponent(name);
-  const c = await apiOrNull<CollectionDetail>(`/v1/collections/${encodeURIComponent(slug)}${cursor ? `?cursor=${cursor}` : ""}`);
+  const page = Math.max(0, Number(sp.page) || 0);
+  const sort = typeof sp.sort === "string" && SORTS.some(([s]) => s === sp.sort) ? sp.sort : "id";
+  const qs = new URLSearchParams();
+  if (cursor) qs.set("cursor", String(cursor));
+  if (page) qs.set("page", String(page));
+  if (sort !== "id") qs.set("sort", sort);
+  const c = await load(name, qs.size ? `?${qs}` : "");
   if (!c) notFound();
   const base = `/collection/${encodeURIComponent(c.slug)}`;
-  const drop = c.kind === "drop";
+  const itemImage = (id: string) => `/v1/collections/${encodeURIComponent(c.slug)}/items/${id}/image`;
+  const o = c.onchain;
+  const m = c.market;
+  const p = c.project;
+  const venueLink = (q: { page?: number; sort?: string }) => {
+    const u = new URLSearchParams();
+    const s = q.sort ?? sort;
+    if (s !== "id") u.set("sort", s);
+    if (q.page) u.set("page", String(q.page));
+    return `${base}${u.size ? `?${u}` : ""}`;
+  };
+
+  const overview: Row[] = [
+    p?.minted_at ? ["Minted", p.minted_at] : o ? ["Minted", <span key="t">{utc(o.first_time)} → <TimeAgo iso={o.last_time} /></span>] : null,
+    p?.mint_price_zec != null ? ["Mint price", p.mint_price_zec === 0 ? "Free" : `${p.mint_price_zec} ZEC`] : null,
+    o?.kind === "zrc721"
+      ? o.deploy_inscription
+        ? [
+            "Deploy inscription",
+            <Link key="d" href={`/inscription/${o.deploy_inscription}`} className="break-all font-mono text-xs text-link hover:text-link-hover">
+              {o.deploy_inscription}
+            </Link>,
+            "The first deploy of this name defines the collection.",
+          ]
+        : ["Deploy inscription", <span key="d" className="text-muted">None on chain</span>]
+      : null,
+    o?.creator
+      ? o.kind === "drop"
+        ? ["Creator", <Hash key="c" value={o.creator} href={`/address/${o.creator}`} full />, "The address every mint's commit transaction paid the most."]
+        : ["Deployer", <Hash key="c" value={o.creator} href={`/address/${o.creator}`} full />]
+      : null,
+    c.meta ? ["Metadata", <span key="m" className="break-all font-mono text-xs">{c.meta}</span>, "Folder holding <item>.json with each item’s name, image and traits."] : null,
+    p
+      ? [
+          "Sources",
+          <ul key="s" className="space-y-0.5">
+            {p.sources.map((s) => (
+              <li key={s.url}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-link hover:text-link-hover">
+                  {s.label} ↗
+                </a>
+              </li>
+            ))}
+          </ul>,
+          "Where each fact on this page comes from.",
+        ]
+      : null,
+  ];
 
   return (
     <div className="space-y-4">
       <PageTitle
         title={
-          <span className="flex flex-wrap items-center gap-2">
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="size-12 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2">{c.image && <NftImage src={c.image} fallback="" />}</span>
             {c.name}
-            {drop ? <Pill tone="info">Launchpad drop</Pill> : <Pill>ZRC-721</Pill>}
-            {!drop && !c.deployed && <Pill tone="warn">No deploy inscription</Pill>}
+            <span className="flex flex-wrap gap-1">
+              <Badges c={c} />
+            </span>
           </span>
         }
       >
-        {drop &&
-          "Grouped from mint transactions: every item's commit transaction paid the same creator address. Nothing on chain names the collection."}
+        {p?.description ??
+          (o?.kind === "drop" ? "Launchpad mints grouped by the creator address every commit transaction paid. No public source names this collection yet." : null)}
       </PageTitle>
+
+      {p && <ProjectLinks p={p} />}
+      <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-muted">{KIND_NOTE[c.kind]}</p>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat
-          label="Unique items"
-          value={int(c.unique_items)}
-          sub={`${int(c.items)} mints${c.unique_items < c.items ? " (duplicates included)" : ""}${c.supply != null ? ` · ${int(c.supply)} declared` : ""}`}
+          label="Items"
+          value={o ? int(o.unique_items) : c.supply != null ? int(c.supply) : "—"}
+          sub={
+            o
+              ? `${int(o.items)} mints${o.unique_items < o.items ? " (duplicates included)" : ""}${c.supply != null ? ` · ${int(c.supply)} declared` : ""}`
+              : m?.minted != null
+                ? `${int(m.minted)} minted`
+                : c.supply != null
+                  ? "declared supply"
+                  : undefined
+          }
         />
-        <Stat label="Holders" value={int(c.holders)} sub={c.shielded > 0 ? `${int(c.shielded)} items shielded` : undefined} />
+        <Stat
+          label={o ? "Holders" : "Sales"}
+          value={o ? int(o.holders) : m?.sales != null ? int(m.sales) : "—"}
+          sub={o ? (o.shielded > 0 ? `${int(o.shielded)} items shielded` : undefined) : m?.sales_24h != null ? `${int(m.sales_24h)} in 24h` : undefined}
+        />
         <Stat
           label="Floor"
-          value={c.market?.floor != null ? <Zec zat={c.market.floor} decimals={4} /> : "—"}
+          value={m?.floor != null ? <Zec zat={m.floor} decimals={4} /> : "—"}
           sub={
-            c.market ? (
-              <a href={c.market.url} target="_blank" rel="noopener noreferrer" className="text-link hover:text-link-hover">
-                {int(c.market.listings ?? 0)} listed on {c.market.venue}
+            m ? (
+              <a href={m.url} target="_blank" rel="noopener noreferrer" className="text-link hover:text-link-hover">
+                {m.listings != null ? `${int(m.listings)} listed on ` : "on "}
+                {m.venue}
               </a>
             ) : (
-              "No marketplace order book"
+              "No marketplace figures"
             )
           }
         />
         <Stat
-          label="Sales (on chain)"
-          value={<Zec zat={c.volume} decimals={2} />}
+          label={o ? "Volume (on chain)" : "Volume"}
+          value={o ? <Zec zat={o.volume} decimals={2} /> : m?.volume != null ? <Zec zat={m.volume} decimals={2} /> : "—"}
           sub={
-            <>
-              {int(c.sales)} sales{c.last_price != null && <> · last <Zec zat={c.last_price} decimals={4} iconSize={11} /></>}
-            </>
+            o ? (
+              <>
+                {int(o.sales)} sales{o.last_price != null && <> · last <Zec zat={o.last_price} decimals={4} iconSize={11} /></>}
+              </>
+            ) : m?.volume_24h != null ? (
+              <>
+                <Zec zat={m.volume_24h} decimals={2} iconSize={11} /> in 24h
+              </>
+            ) : undefined
           }
         />
       </div>
 
       <Card title="Overview" pad={false}>
-        <Rows
-          rows={[
-            c.name_source ? ["Name", <span key="n">{c.name} <span className="text-xs text-muted">({c.name_source})</span></span>] : null,
-            drop
-              ? ["Creator", <Hash key="c" value={c.slug} href={`/address/${c.slug}`} full />, "The address every mint's commit transaction paid the most."]
-              : c.deploy_inscription
-                ? [
-                    "Deploy inscription",
-                    <Link key="d" href={`/inscription/${c.deploy_inscription}`} className="break-all font-mono text-xs text-link hover:text-link-hover">
-                      {c.deploy_inscription}
-                    </Link>,
-                    "The first deploy of this name defines the collection.",
-                  ]
-                : ["Deploy inscription", <span key="d" className="text-muted">None found: images can&apos;t be resolved</span>],
-            !drop && c.deployer ? ["Deployer", <Hash key="a" value={c.deployer} href={`/address/${c.deployer}`} full />] : null,
-            c.meta ? ["Metadata", <span key="m" className="break-all font-mono text-xs">{c.meta}</span>, "Folder holding <item>.json with each item’s name, image and traits."] : null,
-            ["Minted", <span key="t">{utc(c.first_time)} → <TimeAgo iso={c.last_time} /></span>],
-            c.website || c.twitter
-              ? [
-                  "Links",
-                  <span key="l" className="flex gap-3">
-                    {c.website && <a href={c.website} target="_blank" rel="noopener noreferrer" className="text-link hover:text-link-hover">Website ↗</a>}
-                    {c.twitter && <a href={c.twitter} target="_blank" rel="noopener noreferrer" className="text-link hover:text-link-hover">X ↗</a>}
-                  </span>,
-                ]
-              : null,
-          ]}
-        />
+        <Rows rows={overview} />
       </Card>
 
-      <Card title="Items" pad={false}>
-        <div className="p-4">{c.items_page.length ? <InscriptionGrid items={c.items_page} /> : <Empty>No items.</Empty>}</div>
-        {(cursor || c.next) && (
-          <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
-            {cursor && <Link href={base} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">« First</Link>}
-            {c.next && <Link href={`${base}?cursor=${c.next}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}
+      {o && (
+        <Card title="Items" pad={false}>
+          <div className="p-4">{c.items_page.length ? <InscriptionGrid items={c.items_page} /> : <Empty>No items.</Empty>}</div>
+          {(cursor || c.next) && (
+            <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
+              {cursor && <Link href={base} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">« First</Link>}
+              {c.next && <Link href={`${base}?cursor=${c.next}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {c.venue_items.length > 0 && (
+        <Card
+          title={`Items (${int(c.venue_total ?? c.venue_items.length)})`}
+          pad={false}
+          action={
+            <div className="flex gap-1.5 text-xs">
+              {SORTS.map(([s, label]) => (
+                <Link key={s} href={venueLink({ sort: s, page: 0 })} className={`rounded-md border px-2 py-0.5 ${sort === s ? "border-link bg-link text-white" : "border-border hover:text-link"}`}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          }
+        >
+          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {c.venue_items.map((it) => (
+              <Link key={it.id} href={`${base}/item/${it.id}`} className="card group block overflow-hidden hover:border-link">
+                <div className="aspect-square border-b border-border bg-surface-2">
+                  <NftImage src={itemImage(it.id)} fallback={it.name} />
+                </div>
+                <div className="px-3 py-2">
+                  <p className="num truncate text-sm font-medium text-link group-hover:text-link-hover">{it.name}</p>
+                  <p className="flex items-center justify-between text-[11px] text-muted">
+                    <span>{it.rank != null ? `Rank ${int(it.rank)}` : ""}</span>
+                    {it.ask != null && <Zec zat={it.ask} decimals={3} iconSize={10} />}
+                  </p>
+                </div>
+              </Link>
+            ))}
           </div>
-        )}
-      </Card>
+          <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
+            {page > 0 && <Link href={venueLink({ page: page - 1 })} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">‹ Prev</Link>}
+            {(page + 1) * 48 < (c.venue_total ?? 0) && <Link href={venueLink({ page: page + 1 })} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}
+          </div>
+        </Card>
+      )}
 
-      <Card title="Latest sales" pad={false}>
-        <NftSalesTable sales={c.recent_sales} />
-      </Card>
+      {o && (
+        <Card title="Latest sales (on chain)" pad={false}>
+          <NftSalesTable sales={c.recent_sales} />
+        </Card>
+      )}
 
-      <Card title="Top holders" pad={false}>
-        {c.holders_list.length ? (
+      {c.venue_sales.length > 0 && (
+        <Card title={`Latest sales on ${m?.venue ?? "the marketplace"}`} pad={false}>
+          <p className="border-b border-border px-4 py-2 text-xs text-muted">As the marketplace reports them; buyers and sellers aren&apos;t published.</p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px]">
+            <table className="w-full min-w-[520px]">
               <thead className={tableHead}>
                 <tr>
-                  <th className={th}>Rank</th>
-                  <th className={th}>Address</th>
-                  <th className={`${th} text-right`}>Items</th>
-                  <th className={`${th} text-right`}>Share</th>
+                  <th className={th}>Item</th>
+                  <th className={`${th} text-right`}>Price</th>
+                  <th className={th}>Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {c.holders_list.map((h, n) => (
-                  <tr key={h.address} className="hover:bg-surface-2">
-                    <td className={`${td} num text-muted`}>{n + 1}</td>
+                {c.venue_sales.map((s, n) => (
+                  <tr key={n} className="hover:bg-surface-2">
                     <td className={td}>
-                      <Hash value={h.address} href={`/address/${h.address}`} head={10} tail={8} />
+                      <Link href={`${base}/item/${s.item_id}`} className="flex items-center gap-2 text-link hover:text-link-hover">
+                        <span className="size-9 shrink-0 overflow-hidden rounded border border-border bg-surface-2">
+                          <NftImage src={itemImage(s.item_id)} fallback="" />
+                        </span>
+                        {s.name}
+                      </Link>
                     </td>
-                    <td className={`${td} num text-right`}>{int(h.count)}</td>
-                    <td className={`${td} num text-right`}>{((h.count / c.items) * 100).toFixed(2)}%</td>
+                    <td className={`${td} text-right`}>
+                      <Zec zat={s.price} decimals={4} />
+                    </td>
+                    <td className={`${td} text-muted`}>
+                      <TimeAgo iso={s.time} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          <Empty>No transparent holders.</Empty>
-        )}
-      </Card>
+        </Card>
+      )}
+
+      {o && (
+        <Card title="Top holders" pad={false}>
+          {c.holders_list.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px]">
+                <thead className={tableHead}>
+                  <tr>
+                    <th className={th}>Rank</th>
+                    <th className={th}>Address</th>
+                    <th className={`${th} text-right`}>Items</th>
+                    <th className={`${th} text-right`}>Share</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {c.holders_list.map((h, n) => (
+                    <tr key={h.address} className="hover:bg-surface-2">
+                      <td className={`${td} num text-muted`}>{n + 1}</td>
+                      <td className={td}>
+                        <Hash value={h.address} href={`/address/${h.address}`} head={10} tail={8} />
+                      </td>
+                      <td className={`${td} num text-right`}>{int(h.count)}</td>
+                      <td className={`${td} num text-right`}>{((h.count / o.items) * 100).toFixed(2)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <Empty>No transparent holders.</Empty>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
