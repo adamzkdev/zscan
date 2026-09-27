@@ -9,13 +9,10 @@ export const metadata: Metadata = {
   description: "Every Zcash Improvement Proposal with its status, and where to watch it live on chain.",
 };
 
-const CATEGORIES = ["Consensus", "Network", "Wallet", "Standards", "RPC", "Process", "Informational", "Ecosystem", "Mining"];
-
 export default async function ZipsPage(props: PageProps<"/zips">) {
   const sp = await props.searchParams;
   const pick = (v: string | string[] | undefined) => (typeof v === "string" && v ? v : undefined);
   const status = pick(sp.status);
-  const category = pick(sp.category);
   const q = pick(sp.q)?.trim().toLowerCase();
 
   let zips: Zip[] = [];
@@ -30,11 +27,10 @@ export default async function ZipsPage(props: PageProps<"/zips">) {
   const shown = zips.filter(
     (z) =>
       (!status || z.status === status) &&
-      (!category || z.categories.includes(category)) &&
       (!q || `${z.number ?? ""} ${z.title} ${z.owners.join(" ")}`.toLowerCase().includes(q)),
   );
   const href = (patch: Record<string, string | undefined>) => {
-    const next = { status, category, q: pick(sp.q), ...patch };
+    const next = { status, q: pick(sp.q), ...patch };
     const qs = new URLSearchParams(Object.entries(next).filter((e): e is [string, string] => !!e[1]));
     return qs.size ? `/zips?${qs}` : "/zips";
   };
@@ -62,21 +58,11 @@ export default async function ZipsPage(props: PageProps<"/zips">) {
 
       <div className="flex flex-wrap items-center gap-1.5">
         <Link href={href({ status: undefined })} className={chip(!status)}>
-          All statuses
+          All
         </Link>
         {STATUS_ORDER.filter(count).map((s) => (
           <Link key={s} href={href({ status: s })} className={chip(status === s)}>
             {s} <span className="opacity-70">{count(s)}</span>
-          </Link>
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Link href={href({ category: undefined })} className={chip(!category)}>
-          All categories
-        </Link>
-        {CATEGORIES.map((c) => (
-          <Link key={c} href={href({ category: c })} className={chip(category === c)}>
-            {c}
           </Link>
         ))}
       </div>
@@ -87,7 +73,6 @@ export default async function ZipsPage(props: PageProps<"/zips">) {
         action={
           <form action="/zips" className="flex gap-2">
             {status && <input type="hidden" name="status" value={status} />}
-            {category && <input type="hidden" name="category" value={category} />}
             <input
               name="q"
               defaultValue={pick(sp.q)}
