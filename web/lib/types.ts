@@ -661,6 +661,7 @@ export interface NftSale {
   media: InscriptionMedia;
   collection: string | null;
   item: string | null;
+  drop_name?: string | null;
   price: number;
   seller: string | null;
   buyer: string | null;
