@@ -607,6 +607,8 @@ export interface VenueStats {
   url: string;
   floor: number | null;
   listings: number | null;
+  /** Items with an open bid. */
+  bids: number | null;
   volume: number | null;
   sales: number | null;
   volume_24h: number | null;
@@ -627,6 +629,62 @@ export interface CollectionRow {
   project: ProjectInfo | null;
   onchain: CollectionOnchain | null;
   market: VenueStats | null;
+  /** Recent trading (on-chain sales, or ZScan's archive of the venue's sales). */
+  activity: NftActivity | null;
+}
+
+export interface NftActivity {
+  source: "chain" | "archive";
+  sales_24h: number;
+  volume_24h: number;
+  sales_7d: number;
+  volume_7d: number;
+  sales_30d: number;
+  volume_30d: number;
+  /** Percent. */
+  floor_change_24h: number | null;
+  /** Last 14 UTC days, oldest first. */
+  daily_volume: number[];
+}
+
+export interface TraitValue {
+  trait_type: string;
+  value: string;
+  count: number;
+  listed: number;
+  floor: number | null;
+  sales_7d: number;
+  median_7d: number | null;
+}
+
+export interface RarityTier {
+  from_rank: number;
+  to_rank: number;
+  items: number;
+  listed: number;
+  floor: number | null;
+  sales_7d: number;
+  median_7d: number | null;
+}
+
+export interface CollectionStats {
+  activity: NftActivity | null;
+  history: { day: string; sales: number; volume: number; median: number | null; floor: number | null; listings: number | null }[];
+  floor_series: { time: string; floor: number | null; listings: number | null }[];
+  recorded_sales: number;
+  recorded_volume: number;
+  first_sale: string | null;
+  traded_items: number;
+  days_of_inventory: number | null;
+  book: {
+    tiers: RarityTier[];
+    deals: { item: VenueItem; reference: number; discount_pct: number }[];
+    depth: { up_to: number | null; listings: number }[];
+    top_bid: number | null;
+  };
+  traits: TraitValue[];
+  top_sales: { item: string; name: string; price: number; time: string; image: string; href: string }[];
+  importing: boolean;
 }
 
 export interface Trait {
@@ -640,6 +698,7 @@ export interface VenueItem {
   traits: Trait[];
   rank: number | null;
   ask: number | null;
+  bid: number | null;
   last: number | null;
   url: string;
 }
@@ -648,6 +707,9 @@ export interface VenueItemDetail extends VenueItem {
   description: string | null;
   minted_at: string | null;
   history: { kind: string; price: number | null; time: string | null }[];
+  trait_stats: { trait_type: string; value: string; pct: number; floor: number | null }[];
+  tier: RarityTier | null;
+  sales: { time: string; price: number; via: string | null }[];
 }
 
 export interface VenueSale {

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { Hash } from "@/components/Hash";
 import { InscriptionGrid } from "@/components/Inscription";
+import { Analytics, chip, Pager, TraitFilters, TraitTable, VenueItemCard } from "@/components/NftMarket";
 import { NftImage } from "@/components/NftImage";
 import { Badges, KIND_NOTE, ProjectLinks } from "@/components/NftProject";
 import { NftSalesTable } from "@/components/NftSales";
@@ -11,7 +12,9 @@ import { TimeAgo } from "@/components/TimeAgo";
 import { Card, Empty, PageTitle, Rows, Stat, tableHead, td, th, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { int, utc } from "@/lib/format";
-import type { CollectionDetail } from "@/lib/types";
+import type { CollectionDetail, CollectionStats } from "@/lib/types";
+
+const PAGE = 48;
 
 async function load(name: string, qs = "") {
   return apiOrNull<CollectionDetail>(`/v1/collections/${encodeURIComponent(decodeURIComponent(name))}${qs}`);
@@ -20,43 +23,92 @@ async function load(name: string, qs = "") {
 export async function generateMetadata(props: PageProps<"/collection/[name]">): Promise<Metadata> {
   const { name } = await props.params;
   const c = await load(name);
-  return { title: c ? `${c.name} NFT collection` : "NFT collection", description: c?.project?.description };
+  return {
+    title: c ? `${c.name} NFT collection: floor, volume, sales` : "NFT collection",
+    description: c?.project?.description ?? (c ? `${c.name}: Zcash NFT collection items, floor price, volume and sales history.` : undefined),
+  };
 }
 
 const SORTS: [string, string][] = [
   ["id", "Number"],
   ["rank", "Rarity"],
-  ["price", "Price"],
+  ["price", "Price ↑"],
+  ["price_desc", "Price ↓"],
+  ["last", "Last sale"],
+  ["bid", "Top bid"],
+];
+const STATUSES: [string, string][] = [
+  ["", "All"],
+  ["listed", "Listed"],
+  ["bids", "Has bid"],
+  ["sold", "Sold before"],
 ];
 
 type Row = [ReactNode, ReactNode] | [ReactNode, ReactNode, string] | null;
+type Tab = "items" | "analytics" | "traits" | "sales" | "holders";
+
+const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
 export default async function CollectionPage(props: PageProps<"/collection/[name]">) {
   const { name } = await props.params;
   const sp = await props.searchParams;
   const cursor = Number(sp.cursor) || undefined;
-  const page = Math.max(0, Number(sp.page) || 0);
-  const sort = typeof sp.sort === "string" && SORTS.some(([s]) => s === sp.sort) ? sp.sort : "id";
+  const page = Math.max(0, Math.floor(Number(sp.page)) || 0);
+  const sort = SORTS.some(([s]) => s === sp.sort) ? str(sp.sort) : "id";
+  const status = STATUSES.some(([s]) => s && s === sp.status) ? str(sp.status) : "";
+  const q = str(sp.q).trim().slice(0, 12);
+  const traits = str(sp.traits)
+    .split(",")
+    .filter((t) => t.includes(":"))
+    .slice(0, 40);
   const art = sp.view === "art";
   const qs = new URLSearchParams();
   if (art) qs.set("view", "art");
   if (cursor) qs.set("cursor", String(cursor));
   if (page) qs.set("page", String(page));
   if (sort !== "id") qs.set("sort", sort);
-  const c = await load(name, qs.size ? `?${qs}` : "");
+  if (traits.length) qs.set("traits", traits.join(","));
+  if (status) qs.set("status", status);
+  if (q) qs.set("q", q);
+  const slugParam = encodeURIComponent(decodeURIComponent(name));
+  const [c, stats] = await Promise.all([load(name, qs.size ? `?${qs}` : ""), apiOrNull<CollectionStats>(`/v1/collections/${slugParam}/stats`)]);
   if (!c) notFound();
+
   const base = `/collection/${encodeURIComponent(c.slug)}`;
   const itemImage = (id: string) => `/v1/collections/${encodeURIComponent(c.slug)}/items/${id}/image`;
   const o = c.onchain;
   const m = c.market;
   const p = c.project;
-  const venueLink = (q: { page?: number; sort?: string }) => {
+  const a = stats?.activity ?? c.activity;
+  const venue = c.venue_total != null;
+  const total = o && !m?.volume ? o.volume : (m?.volume ?? stats?.recorded_volume ?? null);
+  const tabs: [Tab, string][] = [
+    ["items", "Items"],
+    ["analytics", "Analytics"],
+    ...(venue && stats?.traits.length ? ([["traits", "Traits"]] as [Tab, string][]) : []),
+    ...(o || c.venue_sales.length ? ([["sales", "Sales"]] as [Tab, string][]) : []),
+    ...(o ? ([["holders", "Holders"]] as [Tab, string][]) : []),
+  ];
+  const tab: Tab = tabs.some(([t]) => t === sp.tab) ? (sp.tab as Tab) : "items";
+  const tabHref = (t: Tab) => (t === "items" ? base : `${base}?tab=${t}`);
+
+  const itemsHref = (x: { sort?: string; traits?: string[]; status?: string; q?: string; page?: number }) => {
     const u = new URLSearchParams();
-    const s = q.sort ?? sort;
+    const s = x.sort ?? sort;
     if (s !== "id") u.set("sort", s);
-    if (q.page) u.set("page", String(q.page));
+    const t = x.traits ?? traits;
+    if (t.length) u.set("traits", t.join(","));
+    const st = x.status ?? status;
+    if (st) u.set("status", st);
+    const qq = x.q ?? q;
+    if (qq) u.set("q", qq);
+    if (x.page) u.set("page", String(x.page));
     return `${base}${u.size ? `?${u}` : ""}`;
   };
+  const toggleTrait = (key: string) => itemsHref({ traits: traits.includes(key) ? traits.filter((t) => t !== key) : [...traits, key] });
+  const filtered = traits.length > 0 || !!status || !!q;
+  const types = [...new Set((stats?.traits ?? []).map((t) => t.trait_type))];
+  const traitType = types.includes(str(sp.trait)) ? str(sp.trait) : types[0];
 
   const overview: Row[] = [
     p?.minted_at ? ["Minted", p.minted_at] : o ? ["Minted", <span key="t">{utc(o.first_time)} → <TimeAgo iso={o.last_time} /></span>] : null,
@@ -78,6 +130,9 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
         : ["Deployer", <Hash key="c" value={o.creator} href={`/address/${o.creator}`} full />]
       : null,
     c.meta ? ["Metadata", <span key="m" className="break-all font-mono text-xs">{c.meta}</span>, "Folder holding <item>.json with each item’s name, image and traits."] : null,
+    c.kind === "marketplace"
+      ? ["Owners", "Private", "Owners sign in to the marketplace with a shielded address and it doesn't publish them. Payments are shielded too, so nothing on chain links an item to its owner."]
+      : null,
     p
       ? [
           "Sources",
@@ -130,56 +185,162 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
           }
         />
         <Stat
-          label={o ? "Holders" : "Sales"}
-          value={o ? int(o.holders) : m?.sales != null ? int(m.sales) : "—"}
-          sub={o ? (o.shielded > 0 ? `${int(o.shielded)} items shielded` : undefined) : m?.sales_24h != null ? `${int(m.sales_24h)} in 24h` : undefined}
+          label={o ? "Holders" : "Owners"}
+          value={o ? int(o.holders) : m?.owners != null ? int(m.owners) : "Private"}
+          sub={o ? (o.shielded > 0 ? `${int(o.shielded)} items shielded` : undefined) : m?.owners != null ? undefined : "Held by shielded addresses"}
         />
         <Stat
           label="Floor"
-          value={m?.floor != null ? <Zec zat={m.floor} decimals={4} /> : "—"}
+          value={m?.floor != null ? <Zec zat={m.floor} decimals={4} showUsd /> : "—"}
           sub={
             m ? (
-              <a href={m.url} target="_blank" rel="noopener noreferrer" className="text-link hover:text-link-hover">
-                {m.listings != null ? `${int(m.listings)} listed on ` : "on "}
-                {m.venue}
-              </a>
+              <span className="flex flex-wrap items-center gap-x-1.5">
+                {a?.floor_change_24h != null && (
+                  <span className={a.floor_change_24h >= 0 ? "text-good" : "text-bad"}>
+                    {a.floor_change_24h >= 0 ? "▲" : "▼"} {Math.abs(a.floor_change_24h).toFixed(1)}%
+                  </span>
+                )}
+                <a href={m.url} target="_blank" rel="noopener noreferrer" className="text-link hover:text-link-hover">
+                  {m.listings != null ? `${int(m.listings)} listed on ` : "on "}
+                  {m.venue}
+                </a>
+              </span>
             ) : (
               "No marketplace figures"
             )
           }
         />
         <Stat
-          label={o ? "Volume (on chain)" : "Volume"}
-          value={o ? <Zec zat={o.volume} decimals={2} /> : m?.volume != null ? <Zec zat={m.volume} decimals={2} /> : "—"}
+          label="Volume 24h"
+          value={a ? <Zec zat={a.volume_24h} decimals={2} showUsd /> : m?.volume_24h != null ? <Zec zat={m.volume_24h} decimals={2} showUsd /> : "—"}
           sub={
-            o ? (
-              <>
-                {int(o.sales)} sales{o.last_price != null && <> · last <Zec zat={o.last_price} decimals={4} iconSize={11} /></>}
-              </>
-            ) : m?.volume_24h != null ? (
-              <>
-                <Zec zat={m.volume_24h} decimals={2} iconSize={11} /> in 24h
-              </>
-            ) : undefined
+            <>
+              {a ? `${int(a.sales_24h)} sales · ` : ""}
+              total{" "}
+              {total != null ? <Zec zat={total} decimals={total >= 100e8 ? 0 : 2} iconSize={11} /> : "—"}
+            </>
           }
         />
       </div>
 
-      <Card title="Overview" pad={false}>
-        <Rows rows={overview} />
-      </Card>
+      <nav className="flex gap-1 overflow-x-auto border-b border-border" aria-label="Sections">
+        {tabs.map(([t, label]) => (
+          <Link
+            key={t}
+            href={tabHref(t)}
+            scroll={false}
+            className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm ${tab === t ? "border-link font-medium text-link" : "border-transparent text-muted hover:text-text"}`}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
 
-      {o && (
+      {tab === "analytics" && (stats ? <Analytics c={c} s={stats} slug={c.slug} /> : <Card><Empty>Analytics unavailable right now.</Empty></Card>)}
+
+      {tab === "traits" && stats && traitType && (
+        <TraitTable
+          traits={stats.traits}
+          types={types}
+          type={traitType}
+          typeHref={(t) => `${base}?tab=traits&trait=${encodeURIComponent(t)}`}
+          itemsHref={(key) => itemsHref({ traits: [key], status: "", q: "", sort: "price", page: 0 })}
+        />
+      )}
+
+      {tab === "items" && venue && (
+        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="space-y-3">
+            <Card title="Filters">
+              <div className="space-y-3">
+                <form action={base} method="get" className="flex gap-1.5">
+                  {sort !== "id" && <input type="hidden" name="sort" value={sort} />}
+                  {status && <input type="hidden" name="status" value={status} />}
+                  {traits.length > 0 && <input type="hidden" name="traits" value={traits.join(",")} />}
+                  <input
+                    name="q"
+                    defaultValue={q}
+                    inputMode="numeric"
+                    placeholder="Item number"
+                    aria-label="Item number"
+                    className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-sm"
+                  />
+                  <button type="submit" className="rounded-md border border-border px-2.5 py-1 text-sm text-link hover:bg-surface-2">
+                    Go
+                  </button>
+                </form>
+                <div className="flex flex-wrap gap-1.5 text-xs">
+                  {STATUSES.map(([s, label]) => (
+                    <Link key={s || "all"} href={itemsHref({ status: s, page: 0 })} scroll={false} className={chip(status === s)}>
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </Card>
+            {stats && stats.traits.length > 0 && <TraitFilters traits={stats.traits} selected={traits} toggle={toggleTrait} />}
+          </aside>
+
+          <Card
+            title={`${filtered ? "Matching items" : "Items"} (${int(c.venue_total ?? 0)})`}
+            pad={false}
+            action={
+              <div className="flex flex-wrap gap-1.5 text-xs">
+                {SORTS.map(([s, label]) => (
+                  <Link key={s} href={itemsHref({ sort: s, page: 0 })} scroll={false} className={chip(sort === s)}>
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            }
+          >
+            {filtered && (
+              <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-4 py-2 text-xs">
+                {traits.map((t) => (
+                  <Link key={t} href={toggleTrait(t)} scroll={false} className="rounded-full border border-border bg-surface-2 px-2 py-0.5 hover:border-link">
+                    {t.replace(":", ": ")} ×
+                  </Link>
+                ))}
+                {status && (
+                  <Link href={itemsHref({ status: "" })} scroll={false} className="rounded-full border border-border bg-surface-2 px-2 py-0.5 hover:border-link">
+                    {STATUSES.find(([s]) => s === status)?.[1]} ×
+                  </Link>
+                )}
+                {q && (
+                  <Link href={itemsHref({ q: "" })} scroll={false} className="rounded-full border border-border bg-surface-2 px-2 py-0.5 hover:border-link">
+                    #{q} ×
+                  </Link>
+                )}
+                <Link href={sort !== "id" ? `${base}?sort=${sort}` : base} scroll={false} className="ml-1 text-link hover:text-link-hover">
+                  Clear all
+                </Link>
+              </div>
+            )}
+            {c.venue_items.length ? (
+              <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+                {c.venue_items.map((it) => (
+                  <VenueItemCard key={it.id} it={it} href={`${base}/item/${it.id}`} image={itemImage(it.id)} />
+                ))}
+              </div>
+            ) : (
+              <Empty>No items match these filters.</Empty>
+            )}
+            <Pager page={page} pages={Math.ceil((c.venue_total ?? 0) / PAGE)} href={(n) => itemsHref({ page: n })} base={itemsHref({ page: 0 })} />
+          </Card>
+        </div>
+      )}
+
+      {tab === "items" && o && (
         <Card
           title={art ? `All artworks (${int(c.artworks_total ?? 0)})` : `Minted items (${int(o.unique_items)})`}
           pad={false}
           action={
             c.artworks_total ? (
               <div className="flex gap-1.5 text-xs">
-                <Link href={base} className={`rounded-md border px-2 py-0.5 ${!art ? "border-link bg-link text-white" : "border-border hover:text-link"}`}>
+                <Link href={base} className={chip(!art)}>
                   Minted
                 </Link>
-                <Link href={`${base}?view=art`} className={`rounded-md border px-2 py-0.5 ${art ? "border-link bg-link text-white" : "border-border hover:text-link"}`}>
+                <Link href={`${base}?view=art`} className={chip(art)}>
                   All artworks
                 </Link>
               </div>
@@ -192,90 +353,60 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
                 Every artwork the collection declares, from its metadata. {int(o.unique_items)} of {int(c.artworks_total ?? 0)} have been minted on Zcash; the others are still available to mint.
               </p>
               <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                {c.artworks.map((a) => {
+                {c.artworks.map((w) => {
                   const inner = (
                     <>
                       <div className="aspect-square border-b border-border bg-surface-2">
-                        <NftImage src={a.image} fallback={a.name} />
+                        <NftImage src={w.image} fallback={w.name} />
                       </div>
                       <div className="flex items-center justify-between gap-2 px-3 py-2">
-                        <span className="num truncate text-sm font-medium">{a.name}</span>
-                        <span className={`shrink-0 text-[11px] ${a.inscription ? "text-good" : "text-muted"}`}>{a.inscription ? "Minted" : "Available"}</span>
+                        <span className="num truncate text-sm font-medium">{w.name}</span>
+                        <span className={`shrink-0 text-[11px] ${w.inscription ? "text-good" : "text-muted"}`}>{w.inscription ? "Minted" : "Available"}</span>
                       </div>
                     </>
                   );
-                  return a.inscription ? (
-                    <Link key={a.id} href={`/inscription/${a.inscription}`} className="card block overflow-hidden hover:border-link">
+                  return w.inscription ? (
+                    <Link key={w.id} href={`/inscription/${w.inscription}`} className="card block overflow-hidden hover:border-link">
                       {inner}
                     </Link>
                   ) : (
-                    <div key={a.id} className="card overflow-hidden opacity-80">
+                    <div key={w.id} className="card overflow-hidden opacity-80">
                       {inner}
                     </div>
                   );
                 })}
               </div>
-              <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
-                {page > 0 && <Link href={`${base}?view=art&page=${page - 1}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">‹ Prev</Link>}
-                {(page + 1) * 48 < (c.artworks_total ?? 0) && <Link href={`${base}?view=art&page=${page + 1}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}
-              </div>
+              <Pager page={page} pages={Math.ceil((c.artworks_total ?? 0) / PAGE)} href={(n) => `${base}?view=art${n ? `&page=${n}` : ""}`} base={`${base}?view=art`} />
             </>
           ) : (
-            <div className="p-4">{c.items_page.length ? <InscriptionGrid items={c.items_page} /> : <Empty>No items.</Empty>}</div>
-          )}
-          {!art && (cursor || c.next) && (
-            <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
-              {cursor && <Link href={base} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">« First</Link>}
-              {c.next && <Link href={`${base}?cursor=${c.next}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}
-            </div>
+            <>
+              <div className="p-4">{c.items_page.length ? <InscriptionGrid items={c.items_page} /> : <Empty>No items.</Empty>}</div>
+              {(cursor || c.next) && (
+                <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
+                  {cursor && (
+                    <Link href={base} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">
+                      « First
+                    </Link>
+                  )}
+                  {c.next && (
+                    <Link href={`${base}?cursor=${c.next}`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">
+                      Next ›
+                    </Link>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </Card>
       )}
 
-      {c.venue_items.length > 0 && (
-        <Card
-          title={`Items (${int(c.venue_total ?? c.venue_items.length)})`}
-          pad={false}
-          action={
-            <div className="flex gap-1.5 text-xs">
-              {SORTS.map(([s, label]) => (
-                <Link key={s} href={venueLink({ sort: s, page: 0 })} className={`rounded-md border px-2 py-0.5 ${sort === s ? "border-link bg-link text-white" : "border-border hover:text-link"}`}>
-                  {label}
-                </Link>
-              ))}
-            </div>
-          }
-        >
-          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {c.venue_items.map((it) => (
-              <Link key={it.id} href={`${base}/item/${it.id}`} className="card group block overflow-hidden hover:border-link">
-                <div className="aspect-square border-b border-border bg-surface-2">
-                  <NftImage src={itemImage(it.id)} fallback={it.name} />
-                </div>
-                <div className="px-3 py-2">
-                  <p className="num truncate text-sm font-medium text-link group-hover:text-link-hover">{it.name}</p>
-                  <p className="flex items-center justify-between text-[11px] text-muted">
-                    <span>{it.rank != null ? `Rank ${int(it.rank)}` : ""}</span>
-                    {it.ask != null && <Zec zat={it.ask} decimals={3} iconSize={10} />}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
-            {page > 0 && <Link href={venueLink({ page: page - 1 })} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">‹ Prev</Link>}
-            {(page + 1) * 48 < (c.venue_total ?? 0) && <Link href={venueLink({ page: page + 1 })} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">Next ›</Link>}
-          </div>
-        </Card>
-      )}
-
-      {o && (
+      {tab === "sales" && o && (
         <Card title="Latest sales (on chain)" pad={false}>
           <NftSalesTable sales={c.recent_sales} />
         </Card>
       )}
 
-      {c.venue_sales.length > 0 && (
+      {tab === "sales" && c.venue_sales.length > 0 && (
         <Card title={`Latest sales on ${m?.venue ?? "the marketplace"}`} pad={false}>
           <p className="border-b border-border px-4 py-2 text-xs text-muted">As the marketplace reports them; buyers and sellers aren&apos;t published.</p>
           <div className="overflow-x-auto">
@@ -299,7 +430,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
                       </Link>
                     </td>
                     <td className={`${td} text-right`}>
-                      <Zec zat={s.price} decimals={4} />
+                      <Zec zat={s.price} decimals={4} showUsd />
                     </td>
                     <td className={`${td} text-muted`}>
                       <TimeAgo iso={s.time} />
@@ -312,7 +443,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
         </Card>
       )}
 
-      {o && (
+      {tab === "holders" && o && (
         <Card title="Top holders" pad={false}>
           {c.holders_list.length ? (
             <div className="overflow-x-auto">
@@ -344,6 +475,10 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
           )}
         </Card>
       )}
+
+      <Card title="Overview" pad={false}>
+        <Rows rows={overview} />
+      </Card>
     </div>
   );
 }
