@@ -510,6 +510,8 @@ export interface InscriptionRow {
   /** ZRC-721 collection (items and deploys). */
   collection: string | null;
   item: string | null;
+  /** Launchpad drop name, when curated (e.g. Zemon). */
+  drop_name?: string | null;
   /** Start of the body, for text and JSON. */
   preview: string | null;
 }
@@ -533,7 +535,9 @@ export interface InscriptionStats {
 }
 
 export interface InscriptionEvent {
-  kind: "inscribed" | "transfer" | "shielded" | "burned";
+  kind: "inscribed" | "transfer" | "sale" | "shielded" | "burned";
+  /** Sales: paid to the seller, zatoshis. */
+  price: number | null;
   txid: string;
   height: number;
   time: string;
@@ -553,14 +557,31 @@ export interface InscriptionDetail extends InscriptionRow {
   description: string | null;
   attributes: { trait_type: string; value: string }[];
   events: InscriptionEvent[];
+  /** Launchpad drop this NFT was minted in. */
+  drop: { slug: string; name: string } | null;
   prev: string | null;
   next: string | null;
 }
 
+export interface MarketStats {
+  venue: string;
+  url: string;
+  floor: number | null;
+  listings: number | null;
+  volume: number | null;
+  sales: number | null;
+}
+
 export interface CollectionRow {
+  /** `zrc721` (declared on chain) or `drop` (launchpad mints grouped by their commit payments). */
+  kind: "zrc721" | "drop";
+  slug: string;
   name: string;
+  name_source: string | null;
   supply: number | null;
   items: number;
+  /** Distinct item ids or images: duplicate mints count once. */
+  unique_items: number;
   holders: number;
   shielded: number;
   deployed: boolean;
@@ -569,6 +590,27 @@ export interface CollectionRow {
   cover: string | null;
   first_time: string;
   last_time: string;
+  /** Marketplace sales detected on chain. */
+  sales: number;
+  volume: number;
+  last_price: number | null;
+  website: string | null;
+  twitter: string | null;
+  market: MarketStats | null;
+}
+
+export interface NftSale {
+  id: string;
+  number: number;
+  media: InscriptionMedia;
+  collection: string | null;
+  item: string | null;
+  price: number;
+  seller: string | null;
+  buyer: string | null;
+  txid: string;
+  height: number;
+  time: string;
 }
 
 export interface CollectionDetail extends CollectionRow {
@@ -576,6 +618,21 @@ export interface CollectionDetail extends CollectionRow {
   items_page: InscriptionRow[];
   next: number | null;
   holders_list: { address: string; count: number }[];
+  recent_sales: NftSale[];
+}
+
+export interface OffchainCollection {
+  name: string;
+  venue: string;
+  url: string;
+  supply: number | null;
+  floor_zec: string | null;
+  volume_24h_zec: string | null;
+  volume_total_zec: string | null;
+  sales_24h: number | null;
+  sales_total: number | null;
+  image: string | null;
+  updated_at: string | null;
 }
 
 export interface AddressInscriptions {
@@ -592,6 +649,7 @@ export interface TxInscription {
   collection: string | null;
   item: string | null;
   kind: InscriptionEvent["kind"];
+  price: number | null;
   from_addr: string | null;
   to_addr: string | null;
 }

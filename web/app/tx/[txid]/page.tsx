@@ -301,7 +301,7 @@ function ActionList({ title, actions }: { title: string; actions: Action[] }) {
   );
 }
 
-const MOVE_LABEL = { inscribed: "Inscribed", transfer: "Moved", shielded: "Shielded", burned: "Burned" };
+const MOVE_LABEL = { inscribed: "Inscribed", transfer: "Moved", sale: "Sold", shielded: "Shielded", burned: "Burned" };
 
 function TxInscriptions({ t }: { t: TxDetail }) {
   return (
@@ -314,12 +314,13 @@ function TxInscriptions({ t }: { t: TxDetail }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-2">
-                <Pill tone={i.kind === "inscribed" ? "good" : i.kind === "transfer" ? "neutral" : i.kind === "shielded" ? "info" : "bad"}>
+                <Pill tone={i.kind === "inscribed" || i.kind === "sale" ? "good" : i.kind === "transfer" ? "neutral" : i.kind === "shielded" ? "info" : "bad"}>
                   {MOVE_LABEL[i.kind]}
                 </Pill>
                 <Link href={`/inscription/${i.id}`} className="num font-medium text-link hover:text-link-hover">
                   {i.collection && i.item ? inscriptionName(i) : `Inscription ${inscriptionName(i)}`}
                 </Link>
+                {i.price != null && <Zec zat={i.price} decimals={4} />}
                 <span className="font-mono text-xs text-muted">{i.content_type}</span>
               </p>
               <p className="mt-0.5 text-xs text-muted">

@@ -8,8 +8,10 @@ export const contentUrl = (id: string) => `/v1/inscriptions/${id}/content`;
 export const imageUrl = (id: string) => `/v1/inscriptions/${id}/image`;
 
 /** `ZGODS #9963` for collection items, `#76,872` otherwise. */
-export function inscriptionName(i: Pick<InscriptionRow, "number" | "collection" | "item">) {
-  return i.collection && i.item ? `${i.collection} #${i.item}` : `#${i.number.toLocaleString("en-US")}`;
+export function inscriptionName(i: Pick<InscriptionRow, "number" | "collection" | "item"> & { drop_name?: string | null }) {
+  if (i.collection && i.item) return `${i.collection} #${i.item}`;
+  const n = `#${i.number.toLocaleString("en-US")}`;
+  return i.drop_name ? `${i.drop_name} ${n}` : n;
 }
 
 /**

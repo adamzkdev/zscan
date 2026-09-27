@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { CopyButton, Hash } from "@/components/Hash";
 import { contentUrl, InscriptionPreview, inscriptionName, StatePill } from "@/components/Inscription";
 import { TimeAgo } from "@/components/TimeAgo";
-import { Card, Empty, PageTitle, Pill, Rows, tableHead, td, th } from "@/components/ui";
+import { Card, Empty, PageTitle, Pill, Rows, tableHead, td, th, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { bytes, int, short, utc } from "@/lib/format";
 import type { InscriptionDetail } from "@/lib/types";
@@ -15,7 +15,7 @@ export async function generateMetadata(props: PageProps<"/inscription/[id]">): P
   return { title: i ? (i.name ?? `Inscription ${inscriptionName(i)}`) : "Inscription" };
 }
 
-const EVENT_LABEL = { inscribed: "Inscribed", transfer: "Transfer", shielded: "Shielded", burned: "Burned" };
+const EVENT_LABEL = { inscribed: "Inscribed", transfer: "Transfer", sale: "Sale", shielded: "Shielded", burned: "Burned" };
 
 function Addr({ a }: { a: string | null }) {
   return a ? <Hash value={a} href={`/address/${a}`} head={8} tail={6} /> : <span className="text-faint">—</span>;
@@ -61,7 +61,12 @@ export default async function InscriptionPage(props: PageProps<"/inscription/[id
               </>
             )}
             <StatePill state={i.state} />
-            {i.media === "ipfs" && <Pill tone="info">IPFS NFT</Pill>}
+            {i.drop && (
+              <Link href={`/collection/${encodeURIComponent(i.drop.slug)}`}>
+                <Pill tone="info">{i.drop.name}</Pill>
+              </Link>
+            )}
+            {i.media === "ipfs" && !i.drop && <Pill tone="info">IPFS NFT</Pill>}
             {i.collection && !i.item && <Pill tone="info">Collection deploy</Pill>}
           </span>
         }
@@ -172,9 +177,12 @@ export default async function InscriptionPage(props: PageProps<"/inscription/[id
                 {i.events.map((e) => (
                   <tr key={e.txid} className="hover:bg-surface-2">
                     <td className={td}>
-                      <Pill tone={e.kind === "inscribed" ? "good" : e.kind === "transfer" ? "neutral" : e.kind === "shielded" ? "info" : "bad"}>
-                        {EVENT_LABEL[e.kind]}
-                      </Pill>
+                      <span className="flex items-center gap-2">
+                        <Pill tone={e.kind === "inscribed" || e.kind === "sale" ? "good" : e.kind === "transfer" ? "neutral" : e.kind === "shielded" ? "info" : "bad"}>
+                          {EVENT_LABEL[e.kind]}
+                        </Pill>
+                        {e.price != null && <Zec zat={e.price} decimals={4} />}
+                      </span>
                     </td>
                     <td className={td}>
                       <Hash value={e.txid} href={`/tx/${e.txid}`} head={10} tail={6} />
