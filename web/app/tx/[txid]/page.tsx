@@ -12,6 +12,7 @@ import { Card, PageTitle, Pill, Rows, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { chainContext } from "@/lib/chain";
 import { FINAL_CONFIRMATIONS } from "@/lib/estimate";
+import { AI_URL } from "@/lib/nav";
 import { bytes, int, short, utc, zec } from "@/lib/format";
 import type { Action, TxDetail } from "@/lib/types";
 
@@ -73,6 +74,14 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
         {shieldedCount > 0 && (
           <a href="#shielded" className="rounded-lg bg-surface-2 px-3 py-1.5 text-text hover:text-link">
             Shielded Data ({shieldedCount})
+          </a>
+        )}
+        {AI_URL && t.kind !== "coinbase" && (
+          <a
+            href={`${AI_URL}?${new URLSearchParams({ q: `Is transaction ${t.txid} private? What does it reveal?` })}`}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-text hover:text-link"
+          >
+            <ShieldIcon /> Check privacy with ZScan AI
           </a>
         )}
       </div>
