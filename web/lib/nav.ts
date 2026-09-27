@@ -21,6 +21,7 @@ export const NAV: NavMenu[] = [
     label: "Shielded",
     items: [
       { href: "/ironwood", label: "Ironwood Tracker" },
+      { href: "/viewing-key", label: "Viewing Key Explorer" },
       { href: "/txs?kind=migration", label: "Migrations" },
       { href: "/txs?kind=shielded", label: "Shielded Transactions" },
       { href: "/charts#pools", label: "Pool Balances" },
