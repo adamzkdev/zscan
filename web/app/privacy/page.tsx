@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <Card>
         <ul className="list-disc space-y-3 pl-5 text-sm text-muted">
           <li><b className="text-text">No IP logging.</b> The web server and API do not record visitor IP addresses or request logs.</li>
-          <li><b className="text-text">No trackers, no ads, no cookies.</b> There is no analytics script, fingerprinting or third-party pixel.</li>
+          <li><b className="text-text">No ads, no cookies, no fingerprinting.</b> We count page views with Plausible, a cookieless analytics service that stores no IP addresses or personal data.</li>
           <li><b className="text-text">Your theme choice stays in your browser</b> (localStorage). Nothing is sent to us.</li>
           <li><b className="text-text">Searches aren&apos;t stored.</b> Lookups are resolved and discarded.</li>
           <li><b className="text-text">Shielded data stays shielded.</b> ZScan only shows what the Zcash protocol makes public. We never try to deanonymize shielded users.</li>
