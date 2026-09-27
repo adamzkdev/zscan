@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton, Hash } from "@/components/Hash";
 import { ArrowRightIcon, ClockIcon, ShieldIcon } from "@/components/icons";
-import { InscriptionPreview, OP_TONE } from "@/components/Inscription";
+import { InscriptionPreview, inscriptionName } from "@/components/Inscription";
 import { KindBadge } from "@/components/KindBadge";
 import { LiveConfirmations } from "@/components/LiveConfirmations";
 import { NameTag } from "@/components/NameTag";
@@ -221,7 +221,7 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
         </div>
       )}
 
-      {(t.inscriptions.length > 0 || t.zrc20.length > 0) && <TxInscriptions t={t} />}
+      {t.inscriptions.length > 0 && <TxInscriptions t={t} />}
 
       {shieldedCount > 0 && (
         <section id="shielded" className="scroll-mt-32 space-y-4">
@@ -310,7 +310,7 @@ function TxInscriptions({ t }: { t: TxDetail }) {
         {t.inscriptions.map((i) => (
           <li key={i.id} className="flex items-center gap-3 px-4 py-3 text-sm">
             <span className="size-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-2">
-              <InscriptionPreview id={i.id} media={i.media} />
+              <InscriptionPreview id={i.id} media={i.media} label={inscriptionName(i)} />
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-2">
@@ -318,7 +318,7 @@ function TxInscriptions({ t }: { t: TxDetail }) {
                   {MOVE_LABEL[i.kind]}
                 </Pill>
                 <Link href={`/inscription/${i.id}`} className="num font-medium text-link hover:text-link-hover">
-                  Inscription #{i.number.toLocaleString("en-US")}
+                  {i.collection && i.item ? inscriptionName(i) : `Inscription ${inscriptionName(i)}`}
                 </Link>
                 <span className="font-mono text-xs text-muted">{i.content_type}</span>
               </p>
@@ -327,14 +327,6 @@ function TxInscriptions({ t }: { t: TxDetail }) {
                 {i.kind === "shielded" ? "into the shielded pool (tracking ends)" : i.to_addr ? <>to <Link href={`/address/${i.to_addr}`} className="font-mono hover:text-link">{short(i.to_addr, 8, 6)}</Link></> : i.kind === "burned" ? "burned" : null}
               </p>
             </div>
-          </li>
-        ))}
-        {t.zrc20.map((z, n) => (
-          <li key={`z${n}`} className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm">
-            <Pill tone={z.valid ? OP_TONE[z.op] : "bad"}>ZRC-20 {z.op}</Pill>
-            {z.amount && <span className="num">{z.amount}</span>}
-            {z.tick && <Link href={`/token/${z.tick}`} className="font-medium uppercase text-link hover:text-link-hover">{z.tick}</Link>}
-            {!z.valid && <span className="text-xs text-bad">did not count: {z.reason}</span>}
           </li>
         ))}
       </ul>
