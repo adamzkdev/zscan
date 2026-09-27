@@ -1,4 +1,5 @@
-// Generates the ZScan media kit SVGs (text outlined, no font dependency) into brand/.
+// Generates the ZScan media kit SVGs (text outlined, no font dependency). Every asset is
+// square (512×512 viewBox), so it drops into avatars, app icons and article thumbnails as is.
 const fs = require("fs");
 const path = require("path");
 const { outline } = require("./text");
@@ -7,18 +8,8 @@ const { outline } = require("./text");
 const OUT = process.argv[2];
 fs.mkdirSync(OUT, { recursive: true });
 
-const C = {
-  navy: "#21325b",
-  navy2: "#2d4476",
-  ink: "#212529",
-  white: "#ffffff",
-  accent: "#f4b728",
-  ironwood: "#1baf7a",
-  ironwoodBright: "#3ddc97",
-  orchard: "#eb6834",
-  sapling: "#2a78d6",
-  transparent: "#eda100",
-};
+const C = { navy: "#21325b", navy2: "#2d4476", ink: "#212529", white: "#ffffff", accent: "#f4b728", ironwood: "#1baf7a" };
+const S = 512;
 
 /** The shield mark, drawn in a 32×32 box, placed at (x, y) with side `s`. */
 function mark(x, y, s, z) {
@@ -30,98 +21,44 @@ function mark(x, y, s, z) {
   </g>`;
 }
 
-/** "Z" + "Scan" wordmark; returns svg markup and width. Baseline at y. */
-function wordmark(x, y, size, z) {
+/** "Z" + "Scan" wordmark centred on cx, baseline at y. */
+function wordmark(cx, y, size, z) {
+  const w = outline("Z", { size }).width + outline("Scan", { size }).width;
+  const x = cx - w / 2;
   const zPart = outline("Z", { size, x, y });
   const scan = outline("Scan", { size, x: x + zPart.width, y });
-  return {
-    svg: `<path d="${zPart.d}" fill="${z}"/><path d="${scan.d}" fill="${C.accent}"/>`,
-    width: zPart.width + scan.width,
-  };
+  return `<path d="${zPart.d}" fill="${z}"/><path d="${scan.d}" fill="${C.accent}"/>`;
 }
 
-const svg = (w, h, body, extra = "") =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"${extra}>\n${body}\n</svg>\n`;
+const BG = {
+  none: "",
+  white: `<rect width="${S}" height="${S}" fill="${C.white}"/>`,
+  navy: `<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.navy}"/><stop offset="1" stop-color="${C.navy2}"/></linearGradient><pattern id="d" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#fff" opacity="0.07"/></pattern></defs>
+  <rect width="${S}" height="${S}" fill="url(#bg)"/><rect width="${S}" height="${S}" fill="url(#d)"/>`,
+};
+
+const svg = (body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">\n${body}\n</svg>\n`;
 
 function write(name, content) {
   fs.writeFileSync(path.join(OUT, name), content);
   console.log("wrote", name);
 }
 
-// 1. Mark alone.
-write("zscan-mark.svg", svg(32, 32, mark(0, 0, 32, C.ink)));
-write("zscan-mark-white.svg", svg(32, 32, mark(0, 0, 32, C.white)));
-
-// 2. Horizontal logo: mark + wordmark, vertically centred on the mark.
-function logo(z) {
-  const S = 120, gap = 22, size = 92;
+// Mark alone, centred with a margin that keeps it inside a circular crop.
+const markOnly = (bg, z) => svg(BG[bg] + mark(96, 92, 320, z));
+// Mark stacked over the wordmark.
+const stacked = (bg, z) => {
+  const m = 212, size = 108, gap = 34;
   const cap = 0.711 * size;
-  const baseline = S / 2 + cap / 2;
-  const wm = wordmark(S + gap, baseline, size, z);
-  const W = Math.ceil(S + gap + wm.width + 4);
-  return svg(W, S, mark(0, 0, S, z) + wm.svg);
-}
-write("zscan-logo.svg", logo(C.ink));
-write("zscan-logo-white.svg", logo(C.white));
+  const top = (S - (m + gap + cap)) / 2;
+  return svg(BG[bg] + mark((S - m) / 2, top, m, z) + wordmark(S / 2, top + m + gap + cap, size, z));
+};
 
-// 3. Avatar (profile picture): mark on navy, safe inside the circular crop.
-const dots = (id, op = 0.07) =>
-  `<pattern id="${id}" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#fff" opacity="${op}"/></pattern>`;
-write(
-  "zscan-avatar.svg",
-  svg(
-    400,
-    400,
-    `<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.navy}"/><stop offset="1" stop-color="${C.navy2}"/></linearGradient>${dots("d")}</defs>
-  <rect width="400" height="400" fill="url(#bg)"/><rect width="400" height="400" fill="url(#d)"/>
-  ${mark(80, 76, 240, C.white)}`,
-  ),
-);
-
-// 4. Twitter / X header, 1500×500. Mobile crops ~60px top and bottom; the avatar covers the
-// bottom-left, so content sits in the centre-right band.
-function banner() {
-  const W = 1500, H = 500;
-  const title = wordmark(0, 0, 112, C.white);
-  const tx = 560;
-  const tagA = outline("See what’s public.", { size: 40, weight: 500, x: tx, y: 318 });
-  const tagB = outline("Respect what’s private.", { size: 40, weight: 500, x: tx + tagA.width + 14, y: 318 });
-  const feats = outline("Zcash explorer  ·  Shielded pools  ·  Supply audit  ·  Protocols  ·  Free API", {
-    size: 23, weight: 400, x: tx, y: 372,
-  });
-  const url = outline("zscan.cash", { size: 26, weight: 500, x: 0, y: 0 });
-
-  // Chain of blocks along the top right, with a scan line through them.
-  const blocks = [];
-  const colors = [C.ironwood, null, C.sapling, null, C.ironwood, C.orchard, null, C.ironwood, null, C.transparent];
-  for (let i = 0; i < colors.length; i++) {
-    const bx = 790 + i * 68, by = 70;
-    const fill = colors[i];
-    blocks.push(
-      `<rect x="${bx}" y="${by}" width="46" height="46" rx="9" fill="${fill ?? "none"}" fill-opacity="${fill ? 0.9 : 0}" stroke="#fff" stroke-opacity="${fill ? 0 : 0.22}" stroke-width="2"/>`,
-    );
-    if (i < colors.length - 1) blocks.push(`<path d="M${bx + 46} ${by + 23}h22" stroke="#fff" stroke-opacity=".22" stroke-width="2"/>`);
-  }
-
-  return svg(
-    W,
-    H,
-    `<defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.navy}"/><stop offset="1" stop-color="${C.navy2}"/></linearGradient>
-    ${dots("d")}
-    <linearGradient id="scan" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${C.ironwoodBright}" stop-opacity="0"/><stop offset=".5" stop-color="${C.ironwoodBright}" stop-opacity=".9"/><stop offset="1" stop-color="${C.ironwoodBright}" stop-opacity="0"/></linearGradient>
-  </defs>
-  <rect width="${W}" height="${H}" fill="url(#bg)"/>
-  <rect width="${W}" height="${H}" fill="url(#d)"/>
-  <g opacity=".05">${mark(1275, 150, 380, C.white)}</g>
-  ${blocks.join("\n  ")}
-  <rect x="760" y="92" width="740" height="2" fill="url(#scan)"/>
-  ${mark(tx, 150, 116, C.white)}
-  <g transform="translate(${tx + 140} 250)">${title.svg}</g>
-  <path d="${tagA.d}" fill="#fff" fill-opacity=".92"/>
-  <path d="${tagB.d}" fill="${C.ironwoodBright}"/>
-  <path d="${feats.d}" fill="#fff" fill-opacity=".62"/>
-  <g transform="translate(${W - 64 - url.width} 440)"><path d="${url.d}" fill="${C.accent}"/></g>`,
-  );
-}
-write("twitter-banner.svg", banner());
+write("zscan-icon.svg", markOnly("navy", C.white));
+write("zscan-icon-light.svg", markOnly("white", C.ink));
+write("zscan-mark.svg", markOnly("none", C.ink));
+write("zscan-mark-white.svg", markOnly("none", C.white));
+write("zscan-logo.svg", stacked("none", C.ink));
+write("zscan-logo-white.svg", stacked("none", C.white));
+write("zscan-logo-navy.svg", stacked("navy", C.white));
+write("zscan-logo-light.svg", stacked("white", C.ink));
