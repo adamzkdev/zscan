@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored third-party bundles.
     "public/vendor/**",
+    // wasm-bindgen output (scripts/build-wasm.sh).
+    "public/wasm/zscan_wasm.js",
   ]),
 ]);
 
