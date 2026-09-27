@@ -6,6 +6,7 @@ import { apiOrNull } from "@/lib/api";
 import { IndexingStarting } from "@/app/loading-state";
 import { int } from "@/lib/format";
 import type { Upgrade, Upgrades } from "@/lib/types";
+import { zipUrl } from "@/lib/zips";
 
 export const metadata: Metadata = {
   title: "Zcash Network Upgrades",
@@ -22,6 +23,30 @@ const CHANGES: Record<string, string[]> = {
     "Network Sustainability Mechanism (ZIPs 234/235): part of every fee is removed from supply.",
   ],
 };
+
+/** The ZIP that specifies each upgrade's deployment. */
+const DEPLOY_ZIP: Record<string, number> = {
+  Sapling: 205,
+  Blossom: 206,
+  Heartwood: 250,
+  Canopy: 251,
+  Nu5: 252,
+  Nu6: 253,
+  Nu6_1: 255,
+  Nu6_2: 257,
+  Nu6_3: 258,
+  Nu7: 259,
+};
+
+function ZipLink({ name }: { name: string }) {
+  const n = DEPLOY_ZIP[name];
+  if (!n) return null;
+  return (
+    <a href={zipUrl(n)} className="text-sm text-link hover:text-link-hover">
+      ZIP {n}
+    </a>
+  );
+}
 
 function when(u: Upgrade) {
   if (u.eta) return u.eta;
@@ -53,6 +78,18 @@ export default async function UpgradesPage() {
                 <span className="tracker-glow size-3 rounded-full bg-accent" aria-hidden />
               </p>
               {next.summary && <p className="mt-2 max-w-2xl text-white/85">{next.summary}</p>}
+              {DEPLOY_ZIP[next.name] && (
+                <p className="mt-2 text-sm text-white/80">
+                  Specified in{" "}
+                  <a href={zipUrl(DEPLOY_ZIP[next.name])} className="underline hover:text-white">
+                    ZIP {DEPLOY_ZIP[next.name]}
+                  </a>{" "}
+                  ·{" "}
+                  <Link href="/zips" className="underline hover:text-white">
+                    all ZIPs
+                  </Link>
+                </p>
+              )}
             </div>
             <div className="md:text-right">
               <p className="text-sm text-white/70">
@@ -126,6 +163,7 @@ export default async function UpgradesPage() {
                     </Link>
                   )}
                   {u.activated_at && <span className="text-sm text-muted">{u.activated_at.slice(0, 10)}</span>}
+                  <ZipLink name={u.name} />
                 </p>
                 {u.summary && <p className="mt-0.5 text-sm text-muted">{u.summary}</p>}
               </div>

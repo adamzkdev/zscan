@@ -44,6 +44,7 @@ export const NAV: NavMenu[] = [
     label: "Resources",
     items: [
       { href: "/developers", label: "API Documentation" },
+      { href: "/zips", label: "Improvement Proposals (ZIPs)" },
       { href: "/brand", label: "Media Kit" },
       { href: "/status", label: "Status" },
       { href: "/privacy", label: "Privacy Policy" },
