@@ -32,6 +32,7 @@ export const NAV: NavMenu[] = [
     label: "Analytics",
     items: [
       { href: "/protocols", label: "Protocols" },
+      { href: "/bridges", label: "Cross-chain Flows" },
       { href: "/supply", label: "Supply & Issuance" },
       { href: "/treasury", label: "Treasury" },
       { href: "/fees", label: "Fee Tracker" },
