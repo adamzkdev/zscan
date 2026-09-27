@@ -17,7 +17,15 @@ export async function proxy(req: Request, path: string): Promise<Response> {
   }
   const res = await fetch(`${API()}${path}${url.search}`, init);
   const headers = new Headers();
-  for (const h of ["content-type", "content-disposition", "cache-control"]) {
+  // Inscription content relies on the API's sandbox headers to stay isolated from this origin.
+  for (const h of [
+    "content-type",
+    "content-disposition",
+    "cache-control",
+    "content-security-policy",
+    "x-content-type-options",
+    "cross-origin-resource-policy",
+  ]) {
     const v = res.headers.get(h);
     if (v) headers.set(h, v);
   }

@@ -10,6 +10,8 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
       ["/mempool", "Pending Transactions"],
       ["/accounts", "Top Accounts"],
       ["/labels", "Address Labels"],
+      ["/inscriptions", "Inscriptions"],
+      ["/tokens", "ZRC-20 Tokens"],
     ],
   },
   {

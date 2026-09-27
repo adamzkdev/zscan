@@ -18,6 +18,13 @@ export const NAV: NavMenu[] = [
     ],
   },
   {
+    label: "Tokens",
+    items: [
+      { href: "/inscriptions", label: "Inscriptions (NFTs)" },
+      { href: "/tokens", label: "ZRC-20 Tokens" },
+    ],
+  },
+  {
     label: "Shielded",
     items: [
       { href: "/ironwood", label: "Ironwood Tracker" },
