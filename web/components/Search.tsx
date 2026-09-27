@@ -10,7 +10,7 @@ const ROUTES: Record<string, (id: string) => string> = {
   address: (id) => `/address/${id}`,
   shielded_address: (id) => `/shielded/${encodeURIComponent(id)}`,
   inscription: (id) => `/inscription/${id}`,
-  token: (id) => `/token/${encodeURIComponent(id)}`,
+  collection: (id) => `/collection/${encodeURIComponent(id)}`,
 };
 
 const FILTERS = [

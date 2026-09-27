@@ -11,7 +11,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
       ["/accounts", "Top Accounts"],
       ["/labels", "Address Labels"],
       ["/inscriptions", "Inscriptions"],
-      ["/tokens", "ZRC-20 Tokens"],
+      ["/collections", "NFT Collections"],
     ],
   },
   {
