@@ -620,6 +620,8 @@ export interface CollectionRow {
   name: string;
   kind: NftKind;
   supply: number | null;
+  /** YYYY-MM-DD. */
+  launched: string | null;
   /** API path of the collection picture. */
   image: string | null;
   project: ProjectInfo | null;
