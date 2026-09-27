@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddressTxTable } from "@/components/AddressTxTable";
 import { CopyButton } from "@/components/Hash";
+import { InscriptionGrid } from "@/components/Inscription";
 import { NameTag } from "@/components/NameTag";
 import { QrButton } from "@/components/QrButton";
 import { TimeAgo } from "@/components/TimeAgo";
-import { Card, PageTitle, Pill, Zec } from "@/components/ui";
+import { Card, PageTitle, Pill, tableHead, td, th, Zec } from "@/components/ui";
+import { Amount } from "@/components/Zrc20";
 import { apiOrNull } from "@/lib/api";
 import { int, utc } from "@/lib/format";
-import type { AddressDetail, Price } from "@/lib/types";
+import type { AddressDetail, AddressInscriptions, Price } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/address/[address]">): Promise<Metadata> {
   const { address } = await props.params;
@@ -23,10 +26,11 @@ export default async function AddressPage(props: PageProps<"/address/[address]">
     const v = sp[k];
     if (typeof v === "string" && v) q.set(k, v);
   }
-  const [a, price, history] = await Promise.all([
+  const [a, price, history, ins] = await Promise.all([
     apiOrNull<AddressDetail>(`/v1/address/${encodeURIComponent(address)}?${q}`),
     apiOrNull<Price>("/v1/price").catch(() => null),
     apiOrNull<{ usd: [number, number][] }>("/v1/price/history").catch(() => null),
+    apiOrNull<AddressInscriptions>(`/v1/address/${encodeURIComponent(address)}/inscriptions`).catch(() => null),
   ]);
   if (!a) notFound();
 
@@ -87,6 +91,44 @@ export default async function AddressPage(props: PageProps<"/address/[address]">
       >
         <AddressTxTable a={a} rates={price?.rates ?? null} usdHistory={history?.usd ?? []} />
       </Card>
+
+      {ins && ins.zrc20.length > 0 && (
+        <Card title={`ZRC-20 Tokens (${ins.zrc20.length})`} pad={false}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px]">
+              <thead className={tableHead}>
+                <tr>
+                  <th className={th}>Token</th>
+                  <th className={`${th} text-right`}>Balance</th>
+                  <th className={`${th} text-right`}>Available</th>
+                  <th className={`${th} text-right`}>Committed to transfers</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ins.zrc20.map((z) => (
+                  <tr key={z.tick} className="hover:bg-surface-2">
+                    <td className={td}>
+                      <Link href={`/token/${z.tick}`} className="font-medium uppercase text-link hover:text-link-hover">{z.tick}</Link>
+                    </td>
+                    <td className={`${td} num text-right`}><Amount v={z.balance} /></td>
+                    <td className={`${td} num text-right`}><Amount v={z.available} /></td>
+                    <td className={`${td} num text-right text-muted`}>{z.transferable === "0" ? "—" : <Amount v={z.transferable} />}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {ins && ins.inscription_count > 0 && (
+        <Card title={`Inscriptions (${int(ins.inscription_count)})`}>
+          <InscriptionGrid items={ins.inscriptions} small />
+          {ins.inscription_count > ins.inscriptions.length && (
+            <p className="mt-3 text-xs text-muted">Showing the newest {ins.inscriptions.length}.</p>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

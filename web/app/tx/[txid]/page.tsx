@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton, Hash } from "@/components/Hash";
 import { ArrowRightIcon, ClockIcon, ShieldIcon } from "@/components/icons";
+import { InscriptionPreview, OP_TONE } from "@/components/Inscription";
 import { KindBadge } from "@/components/KindBadge";
 import { LiveConfirmations } from "@/components/LiveConfirmations";
 import { NameTag } from "@/components/NameTag";
@@ -220,6 +221,8 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
         </div>
       )}
 
+      {(t.inscriptions.length > 0 || t.zrc20.length > 0) && <TxInscriptions t={t} />}
+
       {shieldedCount > 0 && (
         <section id="shielded" className="scroll-mt-32 space-y-4">
           <Card title="Shielded Pools">
@@ -291,6 +294,47 @@ function ActionList({ title, actions }: { title: string; actions: Action[] }) {
               <p><span className="mr-2 text-faint">nullifier</span>{a.nullifier}</p>
               <p><span className="mr-2 text-faint">cmx</span>{a.cmx}</p>
             </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+const MOVE_LABEL = { inscribed: "Inscribed", transfer: "Moved", shielded: "Shielded", burned: "Burned" };
+
+function TxInscriptions({ t }: { t: TxDetail }) {
+  return (
+    <Card title="Inscriptions" pad={false}>
+      <ul className="divide-y divide-border">
+        {t.inscriptions.map((i) => (
+          <li key={i.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+            <span className="size-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-2">
+              <InscriptionPreview id={i.id} media={i.media} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-center gap-2">
+                <Pill tone={i.kind === "inscribed" ? "good" : i.kind === "transfer" ? "neutral" : i.kind === "shielded" ? "info" : "bad"}>
+                  {MOVE_LABEL[i.kind]}
+                </Pill>
+                <Link href={`/inscription/${i.id}`} className="num font-medium text-link hover:text-link-hover">
+                  Inscription #{i.number.toLocaleString("en-US")}
+                </Link>
+                <span className="font-mono text-xs text-muted">{i.content_type}</span>
+              </p>
+              <p className="mt-0.5 text-xs text-muted">
+                {i.from_addr && <>from <Link href={`/address/${i.from_addr}`} className="font-mono hover:text-link">{short(i.from_addr, 8, 6)}</Link> </>}
+                {i.kind === "shielded" ? "into the shielded pool (tracking ends)" : i.to_addr ? <>to <Link href={`/address/${i.to_addr}`} className="font-mono hover:text-link">{short(i.to_addr, 8, 6)}</Link></> : i.kind === "burned" ? "burned" : null}
+              </p>
+            </div>
+          </li>
+        ))}
+        {t.zrc20.map((z, n) => (
+          <li key={`z${n}`} className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm">
+            <Pill tone={z.valid ? OP_TONE[z.op] : "bad"}>ZRC-20 {z.op}</Pill>
+            {z.amount && <span className="num">{z.amount}</span>}
+            {z.tick && <Link href={`/token/${z.tick}`} className="font-medium uppercase text-link hover:text-link-hover">{z.tick}</Link>}
+            {!z.valid && <span className="text-xs text-bad">did not count: {z.reason}</span>}
           </li>
         ))}
       </ul>

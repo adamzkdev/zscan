@@ -117,6 +117,8 @@ export interface TxDetail {
   orchard_actions: Action[];
   ironwood_actions: Action[];
   labels: Record<string, Tag>;
+  inscriptions: TxInscription[];
+  zrc20: ZrcEvent[];
 }
 
 export interface AddressDetail {
@@ -476,4 +478,129 @@ export interface BridgesOverview {
   holdings_daily: { day: string; protocol: string; amount: number }[];
   recent: BridgeEvent[];
   since: string | null;
+}
+
+export type InscriptionMedia = "image" | "svg" | "html" | "text" | "json" | "audio" | "video" | "other";
+export type InscriptionState = "transparent" | "shielded" | "burned";
+
+export interface InscriptionRow {
+  /** Genesis txid + `i0`. */
+  id: string;
+  number: number;
+  content_type: string;
+  media: InscriptionMedia;
+  content_len: number;
+  txid: string;
+  height: number;
+  time: string;
+  owner: string | null;
+  state: InscriptionState;
+  /** ZRC-20 op carried by the body. */
+  zrc20: string | null;
+  transfers: number;
+  hidden: boolean;
+  /** Start of the body, for text and JSON. */
+  preview: string | null;
+}
+
+export interface InscriptionPage {
+  items: InscriptionRow[];
+  next: number | null;
+}
+
+export interface InscriptionStats {
+  total: number;
+  by_media: { key: string; count: number }[];
+  by_state: { key: string; count: number }[];
+  holders: number;
+  zrc20_tokens: number;
+  pending: number;
+  scan_height: number | null;
+  first_height: number;
+  tip: number | null;
+}
+
+export interface InscriptionEvent {
+  kind: "inscribed" | "transfer" | "shielded" | "burned";
+  txid: string;
+  height: number;
+  time: string;
+  from_addr: string | null;
+  to_addr: string | null;
+}
+
+export interface ZrcEvent {
+  tick: string;
+  op: "deploy" | "mint" | "transfer" | "send" | "shielded" | "burn" | "invalid";
+  inscription_id: string;
+  inscription_number: number | null;
+  txid: string;
+  height: number;
+  time: string;
+  from_addr: string | null;
+  to_addr: string | null;
+  amount: string | null;
+  valid: boolean;
+  reason: string | null;
+}
+
+export interface InscriptionDetail extends InscriptionRow {
+  genesis_height: number;
+  sha256: string;
+  reveal_txids: string[];
+  location: string | null;
+  text: string | null;
+  events: InscriptionEvent[];
+  zrc20_events: ZrcEvent[];
+  prev: string | null;
+  next: string | null;
+}
+
+export interface Zrc20Token {
+  tick: string;
+  max: string;
+  lim: string;
+  dec: number;
+  minted: string;
+  /** 0–100. */
+  progress: number;
+  burned: string;
+  shielded: string;
+  mints: number;
+  holders: number;
+  deployer: string;
+  deploy_inscription: string;
+  deploy_txid: string;
+  height: number;
+  time: string;
+}
+
+export interface Zrc20List {
+  rules: string;
+  total: number;
+  tokens: Zrc20Token[];
+}
+
+export interface Zrc20Detail extends Zrc20Token {
+  rules: string;
+  holders_list: { address: string; balance: string; available: string; transferable: string; share: number }[];
+  events: ZrcEvent[];
+  invalid_count: number;
+}
+
+export interface AddressInscriptions {
+  address: string;
+  inscriptions: InscriptionRow[];
+  inscription_count: number;
+  zrc20: { tick: string; balance: string; available: string; transferable: string }[];
+}
+
+export interface TxInscription {
+  id: string;
+  number: number;
+  content_type: string;
+  media: InscriptionMedia;
+  kind: InscriptionEvent["kind"];
+  from_addr: string | null;
+  to_addr: string | null;
 }
