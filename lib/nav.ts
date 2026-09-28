@@ -5,6 +5,10 @@ export type NavMenu = { label: string; href?: string; items?: NavItem[] };
 /// NEXT_PUBLIC_AI_URL to an empty value to hide the link.
 export const AI_URL = process.env.NEXT_PUBLIC_AI_URL ?? "https://ai.zscan.cash";
 
+/// Dashboards (markets, ZEC on other chains, daily network series) live on ZScan Stats; the
+/// explorer keeps entities, lists and tools. Inlined at build time.
+export const STATS_URL = (process.env.NEXT_PUBLIC_STATS_URL ?? "https://stats.zscan.cash").replace(/\/$/, "");
+
 export const NAV: NavMenu[] = [
   { label: "Home", href: "/" },
   {
@@ -28,7 +32,7 @@ export const NAV: NavMenu[] = [
       { href: "/viewing-key", label: "Viewing Key Explorer" },
       { href: "/txs?kind=migration", label: "Migrations" },
       { href: "/txs?kind=shielded", label: "Shielded Transactions" },
-      { href: "/charts#pools", label: "Pool Balances" },
+      { href: `${STATS_URL}/shielded-supply`, label: "Pool Balances", external: true },
       { href: "/privacy-stats", label: "Anonymity Sets" },
     ],
   },
@@ -36,13 +40,14 @@ export const NAV: NavMenu[] = [
     label: "Analytics",
     items: [
       { href: "/protocols", label: "Protocols" },
-      { href: "/bridges", label: "Cross-chain Flows" },
+      { href: `${STATS_URL}/markets`, label: "Markets & Derivatives", external: true },
+      { href: `${STATS_URL}/ecosystem`, label: "ZEC on Other Chains", external: true },
+      { href: `${STATS_URL}/ecosystem#bridges`, label: "Cross-chain Flows", external: true },
       { href: "/supply", label: "Supply & Issuance" },
       { href: "/treasury", label: "Treasury" },
       { href: "/fees", label: "Fee Tracker" },
-      { href: "/charts", label: "Charts & Stats" },
       { href: "/miners", label: "Top Miners" },
-      { href: "/network", label: "Network Stats" },
+      { href: `${STATS_URL}/network`, label: "Network Stats", external: true },
       { href: "/upgrades", label: "Network Upgrades" },
     ],
   },

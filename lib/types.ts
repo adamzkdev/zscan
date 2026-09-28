@@ -205,20 +205,6 @@ export interface Mempool {
   txs: MempoolTx[];
 }
 
-export interface DailyStats {
-  day: string;
-  blocks: number;
-  txs: number;
-  transparent: number;
-  shielding: number;
-  deshielding: number;
-  shielded: number;
-  migration: number;
-  mixed: number;
-  fees: number;
-  avg_block_size: number;
-}
-
 export interface Miner {
   address: string;
   pool: string | null;
@@ -435,48 +421,6 @@ export interface ProtocolDetail {
   addresses: LabeledAddress[];
   recent_txs: ProtocolTx[];
   indexed_from: number | null;
-}
-
-export interface BridgeHolding {
-  protocol: string;
-  name: string;
-  amount: number | null;
-  change_1d: number | null;
-  change_7d: number | null;
-  updated_at: string | null;
-}
-
-export interface BridgeVolume {
-  protocol: string;
-  window: "24h" | "7d" | "30d" | "90d";
-  zec_in: number;
-  zec_out: number;
-  usd: number | null;
-  count: number;
-}
-
-export interface BridgeEvent {
-  protocol: string;
-  /** Relative to Zcash: "in" = ZEC arrived on Zcash, "out" = ZEC left Zcash. */
-  direction: "in" | "out";
-  amount: number;
-  counter_asset: string;
-  counter_chain: string;
-  usd: number | null;
-  zcash_txid: string | null;
-  external_url: string | null;
-  status: string;
-  time: string;
-}
-
-export interface BridgesOverview {
-  holdings: BridgeHolding[];
-  volumes: BridgeVolume[];
-  by_chain: { chain: string; zec_in: number; zec_out: number; count: number }[];
-  daily: { day: string; protocol: string; zec_in: number; zec_out: number }[];
-  holdings_daily: { day: string; protocol: string; amount: number }[];
-  recent: BridgeEvent[];
-  since: string | null;
 }
 
 export type InscriptionMedia =

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { STATS_URL } from "@/lib/nav";
 import { Logo } from "./Logo";
 
 const COLUMNS: { title: string; links: [string, string][] }[] = [
@@ -29,7 +30,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
       ["/supply", "Supply & Issuance"],
       ["/treasury", "Treasury"],
       ["/fees", "Fee Tracker"],
-      ["/network", "Network Stats"],
+      [`${STATS_URL}/network`, "Network Stats"],
       ["/upgrades", "Network Upgrades"],
     ],
   },
