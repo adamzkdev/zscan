@@ -26,34 +26,9 @@ export const NAV: NavMenu[] = [
     items: [{ href: "/collections", label: "Collections" }],
   },
   {
-    label: "Shielded",
-    items: [
-      { href: "/ironwood", label: "Ironwood Tracker" },
-      { href: "/viewing-key", label: "Viewing Key Explorer" },
-      { href: "/txs?kind=migration", label: "Migrations" },
-      { href: "/txs?kind=shielded", label: "Shielded Transactions" },
-      { href: `${STATS_URL}/shielded-supply`, label: "Pool Balances", external: true },
-      { href: "/privacy-stats", label: "Anonymity Sets" },
-    ],
-  },
-  {
-    label: "Analytics",
-    items: [
-      { href: "/protocols", label: "Protocols" },
-      { href: `${STATS_URL}/markets`, label: "Markets & Derivatives", external: true },
-      { href: `${STATS_URL}/ecosystem`, label: "ZEC on Other Chains", external: true },
-      { href: `${STATS_URL}/ecosystem#bridges`, label: "Cross-chain Flows", external: true },
-      { href: "/supply", label: "Supply & Issuance" },
-      { href: "/treasury", label: "Treasury" },
-      { href: "/fees", label: "Fee Tracker" },
-      { href: "/miners", label: "Top Miners" },
-      { href: `${STATS_URL}/network`, label: "Network Stats", external: true },
-      { href: "/upgrades", label: "Network Upgrades" },
-    ],
-  },
-  {
     label: "Resources",
     items: [
+      { href: STATS_URL, label: "ZScan Stats", external: true },
       { href: "/developers", label: "API Documentation" },
       { href: "/zips", label: "Improvement Proposals (ZIPs)" },
       { href: "/brand", label: "Media Kit" },

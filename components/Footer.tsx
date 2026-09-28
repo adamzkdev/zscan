@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { STATS_URL } from "@/lib/nav";
+import { AI_URL, STATS_URL } from "@/lib/nav";
 import { Logo } from "./Logo";
 
 const COLUMNS: { title: string; links: [string, string][] }[] = [
@@ -15,28 +15,10 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
     ],
   },
   {
-    title: "Shielded",
-    links: [
-      ["/ironwood", "Ironwood Tracker"],
-      ["/txs?kind=migration", "Migrations"],
-      ["/txs?kind=shielded", "Shielded Transactions"],
-      ["/privacy-stats", "Anonymity Sets"],
-    ],
-  },
-  {
-    title: "Analytics",
-    links: [
-      ["/protocols", "Protocols"],
-      ["/supply", "Supply & Issuance"],
-      ["/treasury", "Treasury"],
-      ["/fees", "Fee Tracker"],
-      [`${STATS_URL}/network`, "Network Stats"],
-      ["/upgrades", "Network Upgrades"],
-    ],
-  },
-  {
     title: "Resources",
     links: [
+      [STATS_URL, "ZScan Stats"],
+      [AI_URL, "ZScan AI"],
       ["/developers", "API Documentation"],
       ["/brand", "Media Kit"],
       ["/status", "Status"],
@@ -49,7 +31,7 @@ export function Footer() {
   return (
     <footer className="mt-12 border-t border-border bg-surface">
       <div className="mx-auto max-w-[1400px] px-4">
-        <div className="grid gap-8 py-8 sm:grid-cols-2 md:grid-cols-[1.5fr_repeat(4,1fr)]">
+        <div className="grid gap-8 py-8 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <Logo size={26} />
