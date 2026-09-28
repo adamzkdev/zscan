@@ -10,12 +10,25 @@ export async function proxy(req: Request, path: string): Promise<Response> {
   // (appended by our reverse proxy) is trustworthy; earlier entries are whatever the client sent.
   const client = req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() || req.headers.get("x-real-ip");
   if (client) upstream["x-forwarded-for"] = client;
-  const init: RequestInit = { method: req.method, cache: "no-store", headers: upstream };
+  // Compact-block downloads (in-browser viewing-key scans) may stream for a while; everything
+  // else answers well within the API's own 30 s limit.
+  const long = path.startsWith("/v1/compact") || path.endsWith("/shielded") || path === "/v1/ws";
+  const init: RequestInit = {
+    method: req.method,
+    cache: "no-store",
+    headers: upstream,
+    ...(long ? {} : { signal: AbortSignal.timeout(35_000) }),
+  };
   if (req.method !== "GET" && req.method !== "HEAD") {
     init.body = await req.text();
     (init.headers as Record<string, string>)["content-type"] = req.headers.get("content-type") ?? "application/json";
   }
-  const res = await fetch(`${API()}${path}${url.search}`, init);
+  let res: Response;
+  try {
+    res = await fetch(`${API()}${path}${url.search}`, init);
+  } catch {
+    return Response.json({ error: "unavailable", message: "The API didn't answer; try again" }, { status: 503 });
+  }
   const headers = new Headers();
   // Inscription content relies on the API's sandbox headers to stay isolated from this origin.
   for (const h of [
