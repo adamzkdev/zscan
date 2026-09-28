@@ -259,7 +259,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
         />
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-border" aria-label="Sections">
+      <nav className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Sections">
         {tabs.map(([t, label]) => (
           <Link
             key={t}
