@@ -1,125 +1,54 @@
 # ZScan
 
-Open Zcash block explorer and data API — **[zscan.cash](https://zscan.cash)**.
+Open Zcash block explorer — **[zscan.cash](https://zscan.cash)**.
 
-- **Explorer**: blocks, transactions (v1–v6, including Ironwood), transparent addresses, mempool, network stats.
-- **Ironwood tracker**: Orchard → Ironwood migration (NU6.3), pool balances over time, daily flows, supply-integrity checks.
-- **Public API**: REST + WebSocket, OpenAPI spec at `/openapi.json`, interactive docs at `/docs`.
-- **Supply & issuance**: live supply, inflation, per-block split (miners / ZCG / coinholder fund), NU7 fee burn,
-  halving countdown — computed from Zcash consensus rules (`zebra-chain`).
-- **Independent supply audit**: every node snapshot is reconciled against block-by-block decoded pool changes
-  (7 dimensions, to the zatoshi). Reproduce it yourself with `zscan-verify`.
-- **Inscriptions (NFTs)**: every Zerdinals NFT since block 3,132,356 (on-chain images, SVG and HTML served in a
-  sandbox, ZRC-721 collections such as ZGODS, IPFS NFTs) with owners and provenance tracked through transparent
-  outputs.
-- **Dev fund tracker, anonymity sets, Orchard exit flows, ZIP-317 fee tracker, Nakamoto coefficient,
-  Unified Address inspector, CSV export, reorg log.**
-- **Privacy-respecting**: no IP logs, no ads, no cookies; page views are counted with cookieless Plausible. Shielded data stays shielded; we only show
-  what the chain makes public. MIT licensed.
+Blocks, transactions (v1–v6, including Ironwood), addresses, mempool, shielded pools, the Orchard → Ironwood
+migration, supply audit, dev fund, NFT collections, bridges, ZIPs and a client-side viewing-key scanner.
+Privacy-respecting: no IP logs, no ads, no cookies. MIT licensed.
 
-## Verify the supply yourself
+ZScan is split into one repo per subdomain:
 
-```bash
-cargo run --release -p zscan-verify -- 2     # waits for 2 new blocks, decodes them, compares with the node
-```
+| Subdomain | Repo |
+|---|---|
+| `zscan.cash` (explorer) | `zscan` (this repo) |
+| `api.zscan.cash` (indexer + data API) | `zscan-api` |
+| `ai.zscan.cash` | `zscan-ai` |
+| `stats.zscan.cash` | `zscan-stats` |
+| `news.zscan.cash` | `zscan-news` |
+| `chat.zscan.cash` | `zscan-chat` |
+| `developers.zscan.cash` | `zscan-developers` |
 
-## Architecture
+## Layout
 
 ```
-crates/
-  chain/    lightwalletd gRPC client (round-robin, rate limit, retries), zebrad JSON-RPC client,
-            tx decoding via zebra-chain (v6/Ironwood), classification, prevout resolution
-  db/       Postgres schema + writes, block builder shared by indexer and API
-  indexer/  follows the tip (reorg-safe), backfills down to START_HEIGHT, pool snapshots, mempool
-  api/      axum REST API, WebSocket (Postgres LISTEN/NOTIFY), OpenAPI (utoipa), per-IP rate limit
-  verify/   zscan-verify CLI: trustless reproduction of the supply audit
-labels/     open address labels (mining pools from coinbase signatures), PRs welcome
-web/        Next.js 16 frontend (SSR), Recharts
+app/, components/, lib/   Next.js 16 frontend (SSR), Recharts
+public/wasm/              viewing-key scanner, built from wasm/ by scripts/build-wasm.sh (artifacts committed)
+wasm/                     Rust crate for the scanner (trial-decrypts compact blocks in the browser)
+brand/                    media kit sources (files served from public/brand/)
 ```
-
-**Data sources** (all configurable):
-
-| Source | Used for | Default |
-|---|---|---|
-| lightwalletd / Zaino gRPC | blocks, raw txs, address balances, mempool, broadcast | `zec.rocks`, `na.zec.rocks`, `eu.zec.rocks` (50 req/s each) |
-| zebrad JSON-RPC | authoritative value-pool balances, difficulty | Tatum public gateway (4 req/min) |
-
-Pool history is **derived exactly**: every block's pool deltas come from decoded value balances and resolved
-transparent inputs, anchored to the node's `valuePools`. Verified to the zatoshi against consecutive node snapshots.
 
 ## Run locally
 
-```bash
-docker compose up -d db
-export DATABASE_URL=postgres://zscan:zscan@127.0.0.1:5433/zscan
-cargo run --release -p zscan-indexer     # starts at the tip, backfills to NU6.3
-cargo run --release -p zscan-api         # http://127.0.0.1:8080/docs
-cd web && npm install && npm run dev     # http://localhost:3000
-```
-
-Everything in Docker, mainnet **and** testnet, built on the host (works even when Docker's build network is
-restricted by a proxy; needs `zig`, `cargo-zigbuild` and the Linux Rust target):
+Needs a running [zscan-api](https://api.zscan.cash/docs), local or public:
 
 ```bash
-./scripts/docker-local.sh
-# Mainnet  http://localhost:3000   API http://localhost:8080/docs
-# Testnet  http://localhost:3001   API http://localhost:8090/docs
+npm install
+API_INTERNAL_URL=https://api.zscan.cash npm run dev     # http://localhost:3000
 ```
 
-Or build the images inside Docker:
-
-```bash
-cp .env.example .env
-docker compose up -d --build             # web :3000, API :8080
-docker compose --profile prod up -d      # + Caddy (HTTPS for $SITE_DOMAIN) and a Tor onion service
-docker compose --profile testnet up -d   # testnet instance on :3001 (NU7 readiness)
-```
-
-## Self-hosted node
-
-Public endpoints are rate-limited and only practical for recent history. For full history and no limits, run the
-Zcash Foundation's [Z3](https://github.com/ZcashFoundation/z3) stack (Zebra + Zaino) and attach ZScan to it:
-
-```bash
-# in z3/
-docker compose --profile indexer up -d
-# in zscan/
-START_HEIGHT=0 API_PORT=8081 docker compose -f docker-compose.yml -f docker-compose.selfhost.yml up -d --build
-```
+The full stack in Docker (indexer, API, Postgres, this explorer) is in `zscan-api`: clone both repos side by side
+(`zcash/api` and `zcash/scan`) and run `docker compose up -d --build` from `api/`.
 
 ## Configuration
 
-| Variable | Service | Default |
-|---|---|---|
-| `DATABASE_URL` | indexer, api | — |
-| `ZSCAN_NETWORK` | indexer, api | `mainnet` (or `testnet`) |
-| `LWD_URL` | indexer, api | zec.rocks endpoints (comma-separated) |
-| `LWD_RATE_PER_SEC` | indexer, api | 50 / 20 per endpoint, `0` = unlimited |
-| `LWD_IPV4_ONLY` | indexer, api | `1` (skip IPv6 on hosts without IPv6 routing) |
-| `RPC_URL`, `RPC_RATE_PER_MIN` | indexer | Tatum zebrad, 4 |
-| `START_HEIGHT` | indexer | NU6.3 activation of the network; or `tip-N` |
-| `BACKFILL_CHUNK`, `BACKFILL_CONCURRENCY` | indexer | 200, 4 |
-| `INSCRIPTIONS`, `INSCRIPTIONS_LAG` | indexer | `on` (`off` disables the scan), 10 blocks behind the tip |
-| `INSCRIPTIONS_MAX_DB_MB` | indexer | none (pauses the scan while the database is larger, for small volumes) |
-| `INSCRIPTION_CONTENT_MAX` | indexer | 61200 bytes; larger content is rebuilt from the chain on request |
-| `INSCRIPTION_BLOCKLIST` | api | none (comma-separated inscription ids never served) |
-| `NFT_REGISTRY_URL` | api | the public [zscan-nft-registry](https://github.com/adamzkdev/zscan-nft-registry) `collections.json` (refreshed every 10 min) |
-| `IPFS_GATEWAY` | api | `https://gateway.pinit.io/ipfs,https://gateway.pinata.cloud/ipfs` (tried in order; collection metadata and IPFS images, relayed) |
-| `API_ADDR`, `API_RATE_PER_SEC` | api | `0.0.0.0:8080`, 10 |
-| `API_MEDIA_RATE_PER_SEC` | api | 60 (pictures and inscribed files, burst ×5) |
-| `API_REQUEST_TIMEOUT_SECS` | api | 30 (longer requests answer 503; WebSocket and compact blocks exempt) |
-| `API_STATEMENT_TIMEOUT_SECS`, `API_DB_CONNECTIONS` | api | 15, 16 (per-statement limit and pool size; migrations run without the limit) |
-| `API_LWD_TIMEOUT_SECS` | api | 20 (per lightwalletd call made while serving a request) |
-| `API_SHUTDOWN_GRACE_SECS` | api | 10 (time in-flight requests get after SIGTERM) |
-| `PRICE_SKIP_COINGECKO`, `NFT_ARCHIVE` | api | unset, 1 (`1` = use the price fallbacks only; `0` = don't archive NFT marketplaces) |
-| `API_INTERNAL_URL` | web | `http://127.0.0.1:8080` (read at runtime) |
-| `API_TIMEOUT_MS` | web | 10000 (server-side API calls; one retry on network errors and 502/503/504) |
-| `ZSCAN_NETWORK`, `PUBLIC_WS_URL`, `MAINNET_URL`, `TESTNET_URL` | web | network badge, live events, network switcher |
-| `ZSCAN_HTTP_PROXY` | indexer, api | none (ambient `HTTP(S)_PROXY` is ignored) |
+| Variable | Default |
+|---|---|
+| `API_INTERNAL_URL` | `http://127.0.0.1:8080` (read at runtime) |
+| `API_TIMEOUT_MS` | 10000 (server-side API calls; one retry on network errors and 502/503/504) |
+| `ZSCAN_NETWORK`, `PUBLIC_WS_URL`, `MAINNET_URL`, `TESTNET_URL` | network badge, live events, network switcher |
 
 ## Tests
 
 ```bash
-cargo test
-cd web && npx tsc --noEmit && npx eslint .
+npx tsc --noEmit && npm run lint && npm run build
 ```

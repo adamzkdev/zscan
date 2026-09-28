@@ -111,7 +111,7 @@ export default async function ProtocolsPage(props: PageProps<"/protocols">) {
         ) : (
           <Empty>
             Nothing tracked in this category yet. Labels need a public source: propose one in{" "}
-            <a href="https://github.com/adamzkdev/zscan/blob/main/labels/addresses.json" className="text-link">
+            <a href="https://github.com/adamzkdev/zscan-api/blob/main/labels/addresses.json" className="text-link">
               labels/addresses.json
             </a>
             .

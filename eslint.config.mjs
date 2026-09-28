@@ -16,6 +16,9 @@ const eslintConfig = defineConfig([
     "public/vendor/**",
     // wasm-bindgen output (scripts/build-wasm.sh).
     "public/wasm/zscan_wasm.js",
+    // Not part of the app: the scanner's Rust sources and the media-kit generator.
+    "wasm/**",
+    "brand/**",
   ]),
 ]);
 

@@ -18,7 +18,7 @@ export default async function LabelsPage() {
       <PageTitle title="Address Labels">
         Every name tag on ZScan and where it comes from. No guesswork: a label needs consensus rules, a coinbase
         signature, the protocol&apos;s own API, or a cited public source.{" "}
-        <a href="https://github.com/adamzkdev/zscan/blob/main/labels/addresses.json" className="text-link hover:text-link-hover">
+        <a href="https://github.com/adamzkdev/zscan-api/blob/main/labels/addresses.json" className="text-link hover:text-link-hover">
           Propose a label
         </a>
         .

@@ -1,6 +1,6 @@
-target
-.git
-web/node_modules
-web/.next
-**/*.log
-.env
+node_modules
+.next
+wasm
+brand
+scripts
+.github
