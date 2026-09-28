@@ -1,26 +1,29 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuditBadge } from "@/components/AuditBadge";
+import { CrossChainFeed } from "@/components/CrossChainFeed";
 import { PriceSparkline } from "@/components/charts/PriceSparkline";
 import { CubeIcon, GaugeIcon, GlobeIcon, ServerIcon, ShieldIcon } from "@/components/icons";
 import { LiveHome } from "@/components/LiveHome";
-import { PoolBar } from "@/components/PoolBar";
 import { Search } from "@/components/Search";
-import { Card, Zec } from "@/components/ui";
+import { Zec } from "@/components/ui";
 import { ZecIcon } from "@/components/ZecIcon";
 import { api, apiOrNull } from "@/lib/api";
 import { hashrate, int, pct, usd } from "@/lib/format";
-import type { BlockSummary, Network, PoolsCurrent, Price, Status, Supply, TxRow } from "@/lib/types";
+import type { BlockSummary, BridgeEvent, Network, PoolsCurrent, Price, Status, Supply, TxRow } from "@/lib/types";
 
 export default async function Home() {
-  const [blocks, txs, pools, net, status, price, supply] = await Promise.all([
+  const testnet = process.env.ZSCAN_NETWORK === "testnet";
+  const [blocks, txs, pools, net, status, price, supply, swaps] = await Promise.all([
     api<BlockSummary[]>("/v1/blocks?limit=6"),
     api<TxRow[]>("/v1/txs?limit=6"),
     apiOrNull<PoolsCurrent>("/v1/pools"),
     api<Network>("/v1/network"),
     api<Status>("/v1/status"),
-    process.env.ZSCAN_NETWORK === "testnet" ? null : api<Price>("/v1/price").catch(() => null),
+    testnet ? null : api<Price>("/v1/price").catch(() => null),
     api<Supply>("/v1/supply").catch(() => null),
+    // Cross-chain swaps are indexed on mainnet only.
+    testnet ? null : apiOrNull<BridgeEvent[]>("/v1/bridges/events?protocol=near-intents&min_zec=0.0001&limit=8"),
   ]);
   if (!pools) return <Starting />;
   const iwShare = pools.pools.ironwood / (pools.pools.ironwood + pools.pools.orchard);
@@ -111,9 +114,7 @@ export default async function Home() {
 
       <LiveHome blocks={blocks} txs={txs} />
 
-      <Card title="ZEC Supply by Pool" action={<Link href="/ironwood" className="text-sm text-link hover:text-link-hover">Ironwood tracker →</Link>}>
-        <PoolBar pools={pools.pools} />
-      </Card>
+      {swaps && <CrossChainFeed events={swaps} />}
 
       {status.backfill_progress < 1 && (
         <p className="text-center text-xs text-faint">

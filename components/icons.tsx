@@ -65,3 +65,10 @@ export function ArrowRightIcon({ size = 14 }: { size?: number }) {
     </svg>
   );
 }
+export function SwapIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...P} aria-hidden>
+      <path d="M4 8h14l-4-4M20 16H6l4 4" />
+    </svg>
+  );
+}

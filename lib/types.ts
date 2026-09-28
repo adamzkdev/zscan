@@ -710,3 +710,23 @@ export interface TxInscription {
   from_addr: string | null;
   to_addr: string | null;
 }
+
+/** A cross-chain movement of ZEC (GET /v1/bridges/events). */
+export interface BridgeEvent {
+  protocol: string;
+  /** Relative to Zcash: "in" = ZEC arrived on Zcash, "out" = ZEC left it. */
+  direction: "in" | "out";
+  amount: number;
+  /** CHAIN.SYMBOL, e.g. "ETH.USDT". */
+  counter_asset: string;
+  counter_chain: string;
+  usd: number | null;
+  zcash_txid: string | null;
+  external_url: string | null;
+  status: string;
+  time: string;
+  counter_amount: number | null;
+  zcash_address: string | null;
+  address_kind: "transparent" | "unified" | "sapling" | null;
+  referral: string | null;
+}
