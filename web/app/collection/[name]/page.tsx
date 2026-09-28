@@ -61,9 +61,9 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
     .split(",")
     .filter((t) => t.includes(":"))
     .slice(0, 40);
-  const art = sp.view === "art";
+  const view = sp.view === "art" || sp.view === "minted" ? sp.view : "";
   const qs = new URLSearchParams();
-  if (art) qs.set("view", "art");
+  if (view) qs.set("view", view);
   if (cursor) qs.set("cursor", String(cursor));
   if (page) qs.set("page", String(page));
   if (sort !== "id") qs.set("sort", sort);
@@ -75,6 +75,8 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
   if (!c) notFound();
 
   const base = `/collection/${encodeURIComponent(c.slug)}`;
+  // The API opens mostly unminted collections on every artwork.
+  const art = c.artworks.length > 0;
   const itemImage = (id: string) => `/v1/collections/${encodeURIComponent(c.slug)}/items/${id}/image`;
   const o = c.onchain;
   const m = c.market;
@@ -190,9 +192,9 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
         title={
           <span className="flex flex-wrap items-center gap-3">
             <span className="size-12 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2">{c.image && <NftImage src={c.image} fallback="" />}</span>
-            {c.name}
-            <span className="flex flex-wrap gap-1">
-              <Badges c={c} />
+            <span className="inline-flex items-center gap-2">
+              {c.name}
+              <Badges c={c} size={24} />
             </span>
           </span>
         }
@@ -352,7 +354,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
           action={
             c.artworks_total ? (
               <div className="flex gap-1.5 text-xs">
-                <Link href={base} className={chip(!art)}>
+                <Link href={`${base}?view=minted`} className={chip(!art)}>
                   Minted
                 </Link>
                 <Link href={`${base}?view=art`} className={chip(art)}>
@@ -399,7 +401,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
               {(cursor || c.next) && (
                 <div className="flex justify-end gap-2 border-t border-border px-4 py-3 text-sm">
                   {cursor && (
-                    <Link href={base} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">
+                    <Link href={`${base}?view=minted`} className="rounded-md border border-border px-3 py-1 text-link hover:bg-surface-2">
                       « First
                     </Link>
                   )}

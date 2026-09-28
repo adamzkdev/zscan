@@ -93,7 +93,10 @@ export default async function CollectionsPage(props: PageProps<"/collections">) 
                     <span className="num w-4 shrink-0 text-xs text-muted">{n + 1}</span>
                     <span className="size-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-2">{c.image ? <NftImage src={c.image} fallback="" /> : null}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-link">{c.name}</span>
+                      <span className="flex items-center gap-1 font-medium text-link">
+                        <span className="truncate">{c.name}</span>
+                        <Badges c={c} size={15} />
+                      </span>
                       <span className="mt-0.5 block text-[11px] text-muted">
                         {m?.floor != null ? (
                           <span className="inline-flex items-center gap-1">
@@ -145,11 +148,11 @@ export default async function CollectionsPage(props: PageProps<"/collections">) 
                             {c.image ? <NftImage src={c.image} fallback="" /> : null}
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate font-medium text-link group-hover:text-link-hover">{c.name}</span>
-                            <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted">
-                              <Badges c={c} />
-                              {c.launched && <span className="ml-1">{launchedLabel(c.launched)}</span>}
+                            <span className="flex items-center gap-1.5 font-medium text-link group-hover:text-link-hover">
+                              <span className="truncate">{c.name}</span>
+                              <Badges c={c} size={16} />
                             </span>
+                            {c.launched && <span className="mt-0.5 block text-[11px] text-muted">Launched {launchedLabel(c.launched)}</span>}
                           </span>
                         </Link>
                       </td>

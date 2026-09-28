@@ -48,10 +48,10 @@ export default async function VenueItemPage(props: PageProps<"/collection/[name]
         title={
           <span className="flex flex-wrap items-center gap-2">
             {item.name}
-            <Link href={base} className="text-base font-normal text-link hover:text-link-hover">
+            <Link href={base} className="inline-flex items-center gap-1 text-base font-normal text-link hover:text-link-hover">
               {c.name}
+              <Badges c={c} size={16} />
             </Link>
-            <Badges c={c} />
           </span>
         }
       />
