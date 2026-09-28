@@ -17,8 +17,8 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
   {
     title: "Resources",
     links: [
-      [STATS_URL, "ZScan Stats"],
-      [AI_URL, "ZScan AI"],
+      [STATS_URL, "Stats"],
+      [AI_URL, "Ask AI"],
       ["/developers", "API Documentation"],
       ["/brand", "Media Kit"],
       ["/status", "Status"],

@@ -28,7 +28,7 @@ export const NAV: NavMenu[] = [
   {
     label: "Resources",
     items: [
-      { href: STATS_URL, label: "ZScan Stats", external: true },
+      { href: STATS_URL, label: "Stats", external: true },
       { href: "/developers", label: "API Documentation" },
       { href: "/zips", label: "Improvement Proposals (ZIPs)" },
       { href: "/brand", label: "Media Kit" },
