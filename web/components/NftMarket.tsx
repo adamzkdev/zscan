@@ -180,13 +180,13 @@ export function Analytics({ c, s, slug }: { c: CollectionRow; s: CollectionStats
         <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
           <Card title="Price by rarity" pad={false}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px]">
+              <table className="w-full sm:min-w-[520px]">
                 <thead className={tableHead}>
                   <tr>
                     <th className={th}>Rank</th>
-                    <th className={`${th} text-right`}>Listed</th>
+                    <th className={`${th} hidden text-right sm:table-cell`}>Listed</th>
                     <th className={`${th} text-right`}>Floor</th>
-                    <th className={`${th} text-right`}>Sales 7d</th>
+                    <th className={`${th} hidden text-right sm:table-cell`}>Sales 7d</th>
                     <th className={`${th} text-right`}>Median 7d</th>
                   </tr>
                 </thead>
@@ -196,11 +196,11 @@ export function Analytics({ c, s, slug }: { c: CollectionRow; s: CollectionStats
                       <td className={`${td} num`}>
                         {int(t.from_rank)}–{int(t.to_rank)}
                       </td>
-                      <td className={`${td} num text-right text-muted`}>
+                      <td className={`${td} num hidden text-right text-muted sm:table-cell`}>
                         {int(t.listed)} / {int(t.items)}
                       </td>
                       <td className={`${td} text-right`}>{t.floor != null ? <Zec zat={t.floor} decimals={3} iconSize={11} /> : "—"}</td>
-                      <td className={`${td} num text-right`}>{int(t.sales_7d)}</td>
+                      <td className={`${td} num hidden text-right sm:table-cell`}>{int(t.sales_7d)}</td>
                       <td className={`${td} text-right`}>{t.median_7d != null ? <Zec zat={t.median_7d} decimals={3} iconSize={11} /> : "—"}</td>
                     </tr>
                   ))}
@@ -275,8 +275,9 @@ export function Analytics({ c, s, slug }: { c: CollectionRow; s: CollectionStats
                 <Link href={t.href} className="min-w-0 flex-1 truncate text-sm text-link hover:text-link-hover">
                   {t.name}
                 </Link>
-                <span className="text-right text-sm">
-                  <Zec zat={t.price} decimals={3} showUsd />
+                <span className="shrink-0 text-right text-sm">
+                  <span className="sm:hidden"><Zec zat={t.price} decimals={3} /></span>
+                  <span className="hidden sm:inline"><Zec zat={t.price} decimals={3} showUsd /></span>
                   <span className="block text-[11px] text-muted">
                     <TimeAgo iso={t.time} />
                   </span>
@@ -309,30 +310,34 @@ export function TraitTable({ traits, types, type, typeHref, itemsHref }: { trait
       }
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px]">
+        <table className="w-full sm:min-w-[640px]">
           <thead className={tableHead}>
             <tr>
               <th className={th}>{type}</th>
-              <th className={`${th} text-right`}>Items</th>
+              <th className={`${th} hidden text-right sm:table-cell`}>Items</th>
               <th className={`${th} text-right`}>Rarity</th>
-              <th className={`${th} text-right`}>Listed</th>
+              <th className={`${th} hidden text-right sm:table-cell`}>Listed</th>
               <th className={`${th} text-right`}>Floor</th>
-              <th className={`${th} text-right`}>Sales 7d</th>
-              <th className={`${th} text-right`}>Median 7d</th>
-              <th className={th} />
+              <th className={`${th} hidden text-right md:table-cell`}>Sales 7d</th>
+              <th className={`${th} hidden text-right sm:table-cell`}>Median 7d</th>
+              <th className={`${th} hidden sm:table-cell`} />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
               <tr key={r.value} className="hover:bg-surface-2">
-                <td className={`${td} font-medium`}>{r.value}</td>
-                <td className={`${td} num text-right`}>{int(r.count)}</td>
+                <td className={`${td} whitespace-normal font-medium`}>
+                  <Link href={itemsHref(`${type}:${r.value}`)} className="hover:text-link sm:pointer-events-none">
+                    {r.value}
+                  </Link>
+                </td>
+                <td className={`${td} num hidden text-right sm:table-cell`}>{int(r.count)}</td>
                 <td className={`${td} num text-right text-muted`}>{((r.count / total) * 100).toFixed(2)}%</td>
-                <td className={`${td} num text-right`}>{int(r.listed)}</td>
+                <td className={`${td} num hidden text-right sm:table-cell`}>{int(r.listed)}</td>
                 <td className={`${td} text-right`}>{r.floor != null ? <Zec zat={r.floor} decimals={3} iconSize={11} /> : "—"}</td>
-                <td className={`${td} num text-right`}>{int(r.sales_7d)}</td>
-                <td className={`${td} text-right`}>{r.median_7d != null ? <Zec zat={r.median_7d} decimals={3} iconSize={11} /> : "—"}</td>
-                <td className={`${td} text-right`}>
+                <td className={`${td} num hidden text-right md:table-cell`}>{int(r.sales_7d)}</td>
+                <td className={`${td} hidden text-right sm:table-cell`}>{r.median_7d != null ? <Zec zat={r.median_7d} decimals={3} iconSize={11} /> : "—"}</td>
+                <td className={`${td} hidden text-right sm:table-cell`}>
                   <Link href={itemsHref(`${type}:${r.value}`)} className="text-xs text-link hover:text-link-hover">
                     Items ›
                   </Link>

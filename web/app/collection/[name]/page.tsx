@@ -110,6 +110,40 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
   const types = [...new Set((stats?.traits ?? []).map((t) => t.trait_type))];
   const traitType = types.includes(str(sp.trait)) ? str(sp.trait) : types[0];
 
+  // Rendered twice: collapsed behind a "Filters" toggle on phones, as a sidebar on desktop.
+  const filterPanel = (
+    <>
+      <Card title="Filters">
+        <div className="space-y-3">
+          <form action={base} method="get" className="flex gap-1.5">
+            {sort !== "id" && <input type="hidden" name="sort" value={sort} />}
+            {status && <input type="hidden" name="status" value={status} />}
+            {traits.length > 0 && <input type="hidden" name="traits" value={traits.join(",")} />}
+            <input
+              name="q"
+              defaultValue={q}
+              inputMode="numeric"
+              placeholder="Item number"
+              aria-label="Item number"
+              className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-sm"
+            />
+            <button type="submit" className="rounded-md border border-border px-2.5 py-1 text-sm text-link hover:bg-surface-2">
+              Go
+            </button>
+          </form>
+          <div className="flex flex-wrap gap-1.5 text-xs">
+            {STATUSES.map(([s, label]) => (
+              <Link key={s || "all"} href={itemsHref({ status: s, page: 0 })} scroll={false} className={chip(status === s)}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </Card>
+      {stats && stats.traits.length > 0 && <TraitFilters traits={stats.traits} selected={traits} toggle={toggleTrait} />}
+    </>
+  );
+
   const overview: Row[] = [
     p?.minted_at ? ["Minted", p.minted_at] : o ? ["Minted", <span key="t">{utc(o.first_time)} → <TimeAgo iso={o.last_time} /></span>] : null,
     p?.mint_price_zec != null ? ["Mint price", p.mint_price_zec === 0 ? "Free" : `${p.mint_price_zec} ZEC`] : null,
@@ -250,36 +284,17 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
 
       {tab === "items" && venue && (
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="space-y-3">
-            <Card title="Filters">
-              <div className="space-y-3">
-                <form action={base} method="get" className="flex gap-1.5">
-                  {sort !== "id" && <input type="hidden" name="sort" value={sort} />}
-                  {status && <input type="hidden" name="status" value={status} />}
-                  {traits.length > 0 && <input type="hidden" name="traits" value={traits.join(",")} />}
-                  <input
-                    name="q"
-                    defaultValue={q}
-                    inputMode="numeric"
-                    placeholder="Item number"
-                    aria-label="Item number"
-                    className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-sm"
-                  />
-                  <button type="submit" className="rounded-md border border-border px-2.5 py-1 text-sm text-link hover:bg-surface-2">
-                    Go
-                  </button>
-                </form>
-                <div className="flex flex-wrap gap-1.5 text-xs">
-                  {STATUSES.map(([s, label]) => (
-                    <Link key={s || "all"} href={itemsHref({ status: s, page: 0 })} scroll={false} className={chip(status === s)}>
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </Card>
-            {stats && stats.traits.length > 0 && <TraitFilters traits={stats.traits} selected={traits} toggle={toggleTrait} />}
-          </aside>
+          <details className="card group lg:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium">
+              <span>
+                Filters
+                {filtered && <span className="ml-2 rounded-full bg-link px-1.5 py-px text-[11px] text-white">{traits.length + (status ? 1 : 0) + (q ? 1 : 0)}</span>}
+              </span>
+              <span className="text-xs text-muted transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="space-y-3 border-t border-border p-3">{filterPanel}</div>
+          </details>
+          <aside className="hidden space-y-3 lg:block">{filterPanel}</aside>
 
           <Card
             title={`${filtered ? "Matching items" : "Items"} (${int(c.venue_total ?? 0)})`}

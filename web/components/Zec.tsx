@@ -21,10 +21,13 @@ export function Zec({
   if (zat == null) return <span className="text-faint">—</span>;
   const value = zat / 1e8;
   return (
-    <span className={`num inline-flex items-center gap-1 whitespace-nowrap ${className}`} title={`${value.toLocaleString("en-US", { maximumFractionDigits: 8 })} ZEC`}>
-      <ZecIcon size={iconSize} />
-      {value.toLocaleString("en-US", { maximumFractionDigits: decimals })}
-      {showUsd && price != null && <span className="text-muted">({usd(value * price)})</span>}
+    // The USD value wraps under the amount when space runs out (narrow stat tiles on phones).
+    <span className={`num inline-flex max-w-full flex-wrap items-center gap-x-1 ${className}`} title={`${value.toLocaleString("en-US", { maximumFractionDigits: 8 })} ZEC`}>
+      <span className="inline-flex items-center gap-1 whitespace-nowrap">
+        <ZecIcon size={iconSize} />
+        {value.toLocaleString("en-US", { maximumFractionDigits: decimals })}
+      </span>
+      {showUsd && price != null && <span className="whitespace-nowrap text-muted">({usd(value * price)})</span>}
     </span>
   );
 }

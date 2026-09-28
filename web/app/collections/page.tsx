@@ -81,7 +81,41 @@ export default async function CollectionsPage(props: PageProps<"/collections">) 
         }
       >
         {list.length ? (
-          <div className="overflow-x-auto">
+          <>
+          {/* Phones: one card per collection with the key figures. */}
+          <ol className="divide-y divide-border sm:hidden">
+            {list.map((c, n) => {
+              const a = c.activity;
+              const m = c.market;
+              return (
+                <li key={c.slug}>
+                  <Link href={`/collection/${encodeURIComponent(c.slug)}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                    <span className="num w-4 shrink-0 text-xs text-muted">{n + 1}</span>
+                    <span className="size-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-2">{c.image ? <NftImage src={c.image} fallback="" /> : null}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium text-link">{c.name}</span>
+                      <span className="mt-0.5 block text-[11px] text-muted">
+                        {m?.floor != null ? (
+                          <span className="inline-flex items-center gap-1">
+                            floor <Zec zat={m.floor} decimals={m.floor >= 1e8 ? 2 : 4} iconSize={10} className="text-text" />
+                          </span>
+                        ) : (
+                          "no floor"
+                        )}
+                        {" · "}
+                        {c.onchain ? `${int(c.onchain.unique_items)} items` : c.supply != null ? `${int(c.supply)} items` : ""}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right text-xs">
+                      {a?.volume_7d ? <Zec zat={a.volume_7d} decimals={a.volume_7d >= 100e8 ? 0 : 2} iconSize={11} /> : <span className="text-faint">—</span>}
+                      <span className="block text-[10px] text-muted">7d volume</span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[860px]">
               <thead className={tableHead}>
                 <tr>
@@ -146,6 +180,7 @@ export default async function CollectionsPage(props: PageProps<"/collections">) 
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <Empty>No collections indexed yet.</Empty>
         )}
