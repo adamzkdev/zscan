@@ -354,6 +354,8 @@ export interface Upgrade {
   eta: string | null;
   announced_date: string | null;
   target_block_time: number;
+  /** Consensus branch ID (hex) signed into transactions. */
+  branch_id: string | null;
   summary: string | null;
 }
 

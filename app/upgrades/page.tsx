@@ -163,6 +163,11 @@ export default async function UpgradesPage() {
                     </Link>
                   )}
                   {u.activated_at && <span className="text-sm text-muted">{u.activated_at.slice(0, 10)}</span>}
+                  {u.branch_id && (
+                    <span className="font-mono text-xs text-muted" title="Consensus branch ID">
+                      0x{u.branch_id}
+                    </span>
+                  )}
                   <ZipLink name={u.name} />
                 </p>
                 {u.summary && <p className="mt-0.5 text-sm text-muted">{u.summary}</p>}

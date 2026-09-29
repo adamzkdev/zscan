@@ -132,39 +132,46 @@ export function Header({
                       />
                     </svg>
                   </button>
-                  <div className="invisible absolute right-0 top-full z-50 w-56 translate-y-1 pt-2 opacity-0 transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-                    <ul
+                  <div
+                    className={`invisible absolute right-0 top-full z-50 translate-y-1 pt-2 opacity-0 transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 ${m.groups ? "w-[640px]" : "w-56"}`}
+                  >
+                    <div
                       role="menu"
-                      className="overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-xl"
+                      className={`overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-xl ${m.groups ? "grid grid-cols-3 gap-1 p-3" : ""}`}
                       style={{ borderTop: "3px solid var(--link)" }}
                     >
-                      {m.items!.map((i) => {
-                        const inner = (
-                          <span className="block text-sm text-text group-hover/item:text-link">
-                            {i.label}
-                          </span>
-                        );
-                        const cls =
-                          "group/item block rounded-lg px-3 py-2 hover:bg-surface-2";
-                        return (
-                          <li key={i.href} role="none">
-                            {i.external ? (
-                              <a role="menuitem" href={i.href} className={cls}>
-                                {inner}
-                              </a>
-                            ) : (
-                              <Link
-                                role="menuitem"
-                                href={i.href}
-                                className={cls}
-                              >
-                                {inner}
-                              </Link>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                      {(m.groups ?? [{ title: "", items: m.items ?? [] }]).map((g) => (
+                        <ul key={g.title} role="none">
+                          {g.title && (
+                            <li role="none" className="px-3 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-faint">
+                              {g.title}
+                            </li>
+                          )}
+                          {g.items.map((i) => {
+                            const inner = (
+                              <span className="block text-sm text-text group-hover/item:text-link">
+                                {i.label}
+                              </span>
+                            );
+                            const cls =
+                              "group/item block rounded-lg px-3 py-2 hover:bg-surface-2";
+                            return (
+                              <li key={i.href} role="none">
+                                {i.external ? (
+                                  <a role="menuitem" href={i.href} className={cls}>
+                                    {inner}
+                                  </a>
+                                ) : (
+                                  <Link role="menuitem" href={i.href} className={cls}>
+                                    {inner}
+                                  </Link>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ),

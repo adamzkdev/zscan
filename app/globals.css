@@ -235,3 +235,82 @@ label[for] {
     animation: none;
   }
 }
+
+/* Tools (/tools/*): panels, form controls and segmented tabs. */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow);
+}
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  padding: 8px 11px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus {
+  border-color: var(--link);
+}
+.input::placeholder {
+  color: var(--faint);
+}
+textarea.input {
+  font-family: var(--font-mono-face), ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 0.5rem;
+  padding: 8px 14px;
+  font-weight: 500;
+  background: var(--link);
+  color: #fff;
+}
+.btn:hover:not(:disabled) {
+  background: var(--link-hover);
+}
+.btn:disabled {
+  opacity: 0.5;
+}
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 7px 12px;
+  color: var(--muted);
+  background: var(--surface);
+}
+.btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 2px;
+  background: var(--surface-2);
+}
+.seg > button {
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  padding: 3px 10px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.seg > [aria-selected="true"] {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}

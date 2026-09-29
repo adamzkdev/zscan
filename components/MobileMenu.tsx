@@ -78,15 +78,18 @@ export function MobileMenu() {
                       <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="3" />
                     </svg>
                   </summary>
-                  <ul className="pb-2">
-                    {m.items!.map((i) => (
-                      <li key={i.href}>
-                        <a href={i.href} className="block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-link">
-                          {i.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                  {(m.groups ?? [{ title: "", items: m.items ?? [] }]).map((g) => (
+                    <ul key={g.title} className="pb-2">
+                      {g.title && <li className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.title}</li>}
+                      {g.items.map((i) => (
+                        <li key={i.href}>
+                          <a href={i.href} className="block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-link">
+                            {i.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ))}
                 </details>
               ),
             )}
