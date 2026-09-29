@@ -1,5 +1,3 @@
-import { TOOLS } from "./tools/list";
-
 export type NavItem = { href: string; label: string; external?: boolean };
 export type NavGroup = { title: string; items: NavItem[] };
 /// A plain link (`href`), a dropdown (`items`) or a wide menu of titled columns (`groups`).
@@ -12,6 +10,10 @@ export const AI_URL = process.env.NEXT_PUBLIC_AI_URL ?? "https://ai.zscan.cash";
 /// Dashboards (markets, ZEC on other chains, daily network series) live on ZScan Stats; the
 /// explorer keeps entities, lists and tools. Inlined at build time.
 export const STATS_URL = (process.env.NEXT_PUBLIC_STATS_URL ?? "https://stats.zscan.cash").replace(/\/$/, "");
+
+/// Developer tools (transaction decoder, broadcast, ZIP-321 payment requests…) live on ZScan Developers;
+/// the explorer keeps the viewing-key scanner. Inlined at build time.
+export const DEVELOPERS_URL = (process.env.NEXT_PUBLIC_DEVELOPERS_URL ?? "https://developers.zscan.cash").replace(/\/$/, "");
 
 /// The account console (API keys, watchlist, alerts). Inlined at build time.
 export const CONSOLE_URL = (process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://console.zscan.cash").replace(/\/$/, "");
@@ -40,14 +42,12 @@ export const NAV: NavMenu[] = [
         items: [
           { href: "/developers", label: "API Documentation" },
           { href: `${CONSOLE_URL}/keys`, label: "API Keys", external: true },
+          { href: DEVELOPERS_URL, label: "Developer Tools", external: true },
         ],
       },
       {
         title: "Tools",
-        items: [
-          ...TOOLS.map((t) => ({ href: `/tools/${t.slug}`, label: t.title })),
-          { href: "/viewing-key", label: "Viewing Key Scanner" },
-        ],
+        items: [{ href: "/viewing-key", label: "Viewing Key Scanner" }],
       },
       {
         title: "Explore",

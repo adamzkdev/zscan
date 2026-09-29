@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Card, PageTitle } from "@/components/ui";
+import { DEVELOPERS_URL } from "@/lib/nav";
 
 export const metadata: Metadata = {
   title: "Developer API",
@@ -47,6 +48,9 @@ export default function DevelopersPage() {
         </a>
         <a href="/openapi.json" className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:text-text">
           OpenAPI spec
+        </a>
+        <a href={DEVELOPERS_URL} className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:text-text">
+          Developer tools
         </a>
       </div>
       <Card title="Quick start">
