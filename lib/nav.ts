@@ -1,4 +1,4 @@
-import { TOOLS } from "./tools/list";
+import { TOOL_PAGES } from "./tools/list";
 
 export type NavItem = { href: string; label: string; external?: boolean };
 export type NavGroup = { title: string; items: NavItem[] };
@@ -40,14 +40,12 @@ export const NAV: NavMenu[] = [
         items: [
           { href: "/developers", label: "API Documentation" },
           { href: `${CONSOLE_URL}/keys`, label: "API Keys", external: true },
+          ...TOOL_PAGES.map((p) => ({ href: `/tools/${p.slug}`, label: p.title })),
         ],
       },
       {
         title: "Tools",
-        items: [
-          ...TOOLS.map((t) => ({ href: `/tools/${t.slug}`, label: t.title })),
-          { href: "/viewing-key", label: "Viewing Key Scanner" },
-        ],
+        items: [{ href: "/viewing-key", label: "Viewing Key Scanner" }],
       },
       {
         title: "Explore",

@@ -1,13 +1,6 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { HeightDate } from "@/components/tools/HeightDate";
-import { Panel } from "@/components/tools/ui";
-import { PageTitle } from "@/components/ui";
-
-export const metadata: Metadata = {
-  title: "Zcash Network Reference",
-  description: "Zcash address and key prefixes, protocol constants and a block height to date estimator.",
-};
+import { HeightDate } from "./HeightDate";
+import { Panel } from "./ui";
 
 const PREFIXES: [string, string, string, string][] = [
   ["Transparent P2PKH", "t1", "tm", "Public; the usual exchange deposit address"],
@@ -32,16 +25,10 @@ const CONSTANTS: [string, string][] = [
   ["Default P2P / RPC ports", "8233 / 8232 (testnet 18233 / 18232)"],
 ];
 
-export default function NetworkPage() {
+/** Block height ↔ date, protocol constants and address prefixes. */
+export function NetworkReference() {
   return (
     <div className="space-y-4">
-      <PageTitle eyebrow="Tools" title="Network Reference">
-        Address and key prefixes, protocol constants and block times. Activation heights and consensus branch IDs are on{" "}
-        <Link href="/upgrades" className="text-link hover:text-link-hover">
-          Network Upgrades
-        </Link>
-        .
-      </PageTitle>
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Block height ↔ date">
           <HeightDate spacing={75} />
@@ -81,6 +68,13 @@ export default function NetworkPage() {
           </table>
         </div>
       </Panel>
+      <p className="text-sm text-muted">
+        Activation heights and consensus branch IDs are on{" "}
+        <Link href="/upgrades" className="text-link hover:text-link-hover">
+          Network Upgrades
+        </Link>
+        .
+      </p>
     </div>
   );
 }
