@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ItemSalesChart } from "@/components/charts/NftMarketChart";
+import { NftHistory } from "@/components/NftHistory";
 import { NftImage } from "@/components/NftImage";
 import { Badges, KIND_NOTE } from "@/components/NftProject";
 import { TimeAgo } from "@/components/TimeAgo";
-import { Card, Empty, PageTitle, Rows, tableHead, td, th, Zec } from "@/components/ui";
+import { Card, PageTitle, Rows, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { int } from "@/lib/format";
 import type { CollectionRow, VenueItemDetail } from "@/lib/types";
@@ -25,15 +26,6 @@ export async function generateMetadata(props: PageProps<"/collection/[name]/item
   const d = await load(name, id);
   return { title: d ? d.item.name : "NFT" };
 }
-
-const LABEL: Record<string, string> = {
-  snark_minted: "Minted",
-  listing_created: "Listed",
-  listing_cancelled: "Listing cancelled",
-  order_paid: "Sale",
-  offer_accepted: "Sale (offer accepted)",
-  snark_transferred: "Transferred",
-};
 
 export default async function VenueItemPage(props: PageProps<"/collection/[name]/item/[id]">) {
   const { name, id } = await props.params;
@@ -133,28 +125,7 @@ export default async function VenueItemPage(props: PageProps<"/collection/[name]
       )}
 
       <Card title="History (as the marketplace reports it)" pad={false}>
-        {item.history.length ? (
-          <table className="w-full">
-            <thead className={tableHead}>
-              <tr>
-                <th className={th}>Event</th>
-                <th className={`${th} text-right`}>Price</th>
-                <th className={th}>Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {item.history.map((h, n) => (
-                <tr key={n}>
-                  <td className={td}>{LABEL[h.kind] ?? h.kind.replace(/_/g, " ")}</td>
-                  <td className={`${td} text-right`}>{h.price != null ? <Zec zat={h.price} decimals={4} /> : "—"}</td>
-                  <td className={`${td} text-muted`}>{h.time ? <TimeAgo iso={h.time} /> : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <Empty>No history.</Empty>
-        )}
+        <NftHistory events={item.history} />
       </Card>
     </div>
   );
