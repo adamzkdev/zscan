@@ -10,6 +10,8 @@ export async function proxy(req: Request, path: string): Promise<Response> {
   // (appended by our reverse proxy) is trustworthy; earlier entries are whatever the client sent.
   const client = req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() || req.headers.get("x-real-ip");
   if (client) upstream["x-forwarded-for"] = client;
+  // Our token makes the API trust the forwarded address even if it can't tell this server is ours.
+  if (process.env.INTERNAL_API_TOKEN) upstream["x-zscan-internal"] = process.env.INTERNAL_API_TOKEN;
   // Compact-block downloads (in-browser viewing-key scans) may stream for a while; everything
   // else answers well within the API's own 30 s limit.
   const long = path.startsWith("/v1/compact") || path.endsWith("/shielded") || path === "/v1/ws";

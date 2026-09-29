@@ -1,5 +1,8 @@
 import "server-only";
 
+/** Our apps' shared token: the API trusts their server-side requests (see INTERNAL_API_TOKEN). */
+const INTERNAL = process.env.INTERNAL_API_TOKEN ? { "x-zscan-internal": process.env.INTERNAL_API_TOKEN } : undefined;
+
 const BASE = process.env.API_INTERNAL_URL ?? "http://127.0.0.1:8080";
 
 export class ApiError extends Error {
@@ -18,7 +21,7 @@ const TIMEOUT_MS = Number(process.env.API_TIMEOUT_MS ?? 10_000);
 async function fetchApi(url: string): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
     try {
-      const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
+      const res = await fetch(url, { cache: "no-store", headers: INTERNAL, signal: AbortSignal.timeout(TIMEOUT_MS) });
       if (attempt === 0 && [502, 503, 504].includes(res.status)) throw new Error(`HTTP ${res.status}`);
       return res;
     } catch (e) {
