@@ -23,7 +23,8 @@ bech32 = "0.11"
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
-wasm-bindgen = "=0.2.100"
+# Cargo.lock keeps 0.2.100, which must match wasm-bindgen-cli (scripts/build-wasm.sh).
+wasm-bindgen = "0.2.100"
 getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
