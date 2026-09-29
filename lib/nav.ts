@@ -33,16 +33,6 @@ export const NAV: NavMenu[] = [
     items: [{ href: "/collections", label: "Collections" }],
   },
   {
-    label: "Resources",
-    items: [
-      { href: STATS_URL, label: "Stats", external: true },
-      { href: "/zips", label: "Improvement Proposals (ZIPs)" },
-      { href: "/brand", label: "Media Kit" },
-      { href: "/status", label: "Status" },
-      { href: "/privacy", label: "Privacy Policy" },
-    ],
-  },
-  {
     label: "More",
     groups: [
       {
@@ -50,7 +40,6 @@ export const NAV: NavMenu[] = [
         items: [
           { href: "/developers", label: "API Documentation" },
           { href: `${CONSOLE_URL}/keys`, label: "API Keys", external: true },
-          { href: `${CONSOLE_URL}/watchlist`, label: "Watchlist & Alerts", external: true },
         ],
       },
       {
@@ -68,6 +57,16 @@ export const NAV: NavMenu[] = [
           { href: "/ironwood", label: "Ironwood Migration" },
           { href: "/supply", label: "Supply Audit" },
           { href: "/miners", label: "Mining Pools" },
+        ],
+      },
+      {
+        title: "Resources",
+        items: [
+          { href: STATS_URL, label: "Stats", external: true },
+          { href: "/zips", label: "Improvement Proposals (ZIPs)" },
+          { href: "/brand", label: "Media Kit" },
+          { href: "/status", label: "Status" },
+          { href: "/privacy", label: "Privacy Policy" },
         ],
       },
     ],
