@@ -21,15 +21,6 @@ export default function Tools() {
               {p.title}
             </Link>
             <p className="mt-1 text-sm text-muted">{p.blurb}</p>
-            <ul className="mt-3 space-y-1 text-sm">
-              {p.tools.map((t) => (
-                <li key={t.id}>
-                  <Link href={`/tools/${p.slug}${p.tools.length > 1 ? `#${t.id}` : ""}`} className="text-muted hover:text-text">
-                    {t.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </div>
         ))}
       </div>

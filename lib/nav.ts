@@ -32,8 +32,11 @@ export const NAV: NavMenu[] = [
     ],
   },
   {
-    label: "Tokens",
-    items: [{ href: "/collections", label: "Collections" }],
+    label: "NFTs",
+    items: [
+      { href: "/collections", label: "Collections" },
+      { href: "/nft-trades", label: "Latest Trades" },
+    ],
   },
   {
     label: "More",
@@ -42,7 +45,7 @@ export const NAV: NavMenu[] = [
         title: "Developers",
         items: [
           { href: "/developers", label: "API Documentation" },
-          { href: "/zips", label: "Improvement Proposals (ZIPs)" },
+          { href: "/zips", label: "Improvement Proposals" },
           ...toolLinks("developers"),
         ],
       },
@@ -65,7 +68,6 @@ export const NAV: NavMenu[] = [
           { href: STATS_URL, label: "Stats", external: true },
           { href: "/brand", label: "Media Kit" },
           { href: "/status", label: "Status" },
-          { href: "/privacy", label: "Privacy Policy" },
         ],
       },
     ],

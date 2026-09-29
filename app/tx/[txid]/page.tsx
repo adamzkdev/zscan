@@ -13,7 +13,6 @@ import { Card, PageTitle, Pill, Rows, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { chainContext } from "@/lib/chain";
 import { FINAL_CONFIRMATIONS } from "@/lib/estimate";
-import { AI_URL } from "@/lib/nav";
 import { bytes, int, short, utc, zec } from "@/lib/format";
 import type { Action, TxDetail } from "@/lib/types";
 
@@ -70,25 +69,7 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
     <div className="space-y-4">
       <PageTitle title="Transaction Details" />
       {chain && <TxTracker key={t.txid} initial={t} chain={chain} />}
-      <div className="flex gap-2 text-sm">
-        <a href="#overview" className="rounded-lg bg-link px-3 py-1.5 font-medium text-white">Overview</a>
-        {shieldedCount > 0 && (
-          <a href="#shielded" className="rounded-lg bg-surface-2 px-3 py-1.5 text-text hover:text-link">
-            Shielded Data ({shieldedCount})
-          </a>
-        )}
-        {AI_URL && t.kind !== "coinbase" && (
-          <a
-            href={`${AI_URL}?${new URLSearchParams({ q: `Is transaction ${t.txid} private? What does it reveal?` })}`}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-text hover:text-link"
-          >
-            <ShieldIcon /> Check privacy with ZScan AI
-          </a>
-        )}
-      </div>
-
-      <Card pad={false} className="scroll-mt-32">
-        <div id="overview" />
+      <Card pad={false}>
         <Rows
           rows={[
             ["Transaction Hash", <span key="h" className="inline-flex items-center gap-1.5 break-all font-mono">{t.txid}<CopyButton value={t.txid} /></span>, "A unique identifier generated whenever a transaction is executed."],
