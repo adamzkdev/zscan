@@ -14,7 +14,9 @@ use orchard::keys::{
     FullViewingKey as OrchardFvk, IncomingViewingKey as OrchardIvk,
     PreparedIncomingViewingKey as OrchardPivk, Scope,
 };
-use orchard::note::{ExtractedNoteCommitment as OrchardCmx, Nullifier as OrchardNf};
+use orchard::note::{
+    ExtractedNoteCommitment as OrchardCmx, NoteVersion, Nullifier as OrchardNf, RandomSeed,
+};
 use orchard::note_encryption::{CompactAction, IronwoodDomain, OrchardDomain};
 use sapling_crypto::keys::PreparedIncomingViewingKey as SaplingPivk;
 use sapling_crypto::note_encryption::{CompactOutputDescription, SaplingDomain, Zip212Enforcement};
@@ -26,8 +28,8 @@ use wasm_bindgen::prelude::*;
 use zcash_address::unified::{self, Container, Encoding};
 use zcash_address::{ToAddress, ZcashAddress};
 use zcash_note_encryption::{
-    batch, try_note_decryption, try_output_recovery_with_ovk, EphemeralKeyBytes, ShieldedOutput,
-    ENC_CIPHERTEXT_SIZE,
+    batch, try_note_decryption, try_output_recovery_with_ovk, try_output_recovery_with_pkd_esk,
+    Domain, EphemeralKeyBytes, ShieldedOutput, ENC_CIPHERTEXT_SIZE,
 };
 use zcash_protocol::consensus::NetworkType as Network;
 
@@ -128,37 +130,37 @@ fn refuse_secrets(key: &str) -> Result<(), String> {
 /* ------------------------------------------------------------------ scanner */
 
 #[derive(Serialize)]
-struct FoundNote {
-    txid: String,
-    height: u32,
-    time: u32,
+pub struct FoundNote {
+    pub txid: String,
+    pub height: u32,
+    pub time: u32,
     /// Position of the transaction in its block.
-    tx_index: u32,
-    pool: &'static str,
+    pub tx_index: u32,
+    pub pool: &'static str,
     /// Index of the output (Sapling) or action (Orchard/Ironwood) within the transaction.
-    output_index: u32,
-    value: u64,
+    pub output_index: u32,
+    pub value: u64,
     /// "external" for received payments, "internal" for change.
-    scope: &'static str,
+    pub scope: &'static str,
     /// Nullifier (hex) that will mark this note spent; null with an incoming viewing key.
-    nf: Option<String>,
+    pub nf: Option<String>,
 }
 
 #[derive(Serialize)]
-struct ScanResult {
-    notes: Vec<FoundNote>,
-    first_height: u32,
-    last_height: u32,
-    blocks: u32,
-    outputs: u32,
+pub struct ScanResult {
+    pub notes: Vec<FoundNote>,
+    pub first_height: u32,
+    pub last_height: u32,
+    pub blocks: u32,
+    pub outputs: u32,
 }
 
 #[derive(Serialize)]
-struct Spend {
-    nf: String,
-    txid: String,
-    height: u32,
-    time: u32,
+pub struct Spend {
+    pub nf: String,
+    pub txid: String,
+    pub height: u32,
+    pub time: u32,
 }
 
 /// Where a spend nullifier was seen: index into `spend_txs`.
@@ -593,7 +595,7 @@ impl Scanner {
                             } else {
                                 "change"
                             },
-                            note.value().inner(),
+                            note,
                             memo,
                             None,
                         ));
@@ -615,19 +617,33 @@ impl Scanner {
                                 let to =
                                     ZcashAddress::from_sapling(self.net_type(), addr.to_bytes())
                                         .encode();
-                                hit = Some(("sent", note.value().inner(), memo, Some(to)));
+                                hit = Some(("sent", note, memo, Some(to)));
                             }
                         }
                     }
                 }
-                if let Some((kind, value, memo, to)) = hit {
+                if let Some((kind, note, memo, to)) = hit {
+                    let receipt = match (o.txid.as_deref(), note.rseed()) {
+                        (Some(txid), sapling_crypto::Rseed::AfterZip212(r)) => Receipt {
+                            network: self.network,
+                            pool: Pool::Sapling,
+                            txid: txid.to_string(),
+                            index: i as u16,
+                            addr: note.recipient().to_bytes(),
+                            rseed: *r,
+                        }
+                        .encode(),
+                        // Pre-ZIP-212 notes carry rcm, not a seed: no receipt.
+                        _ => None,
+                    };
                     found.push(Decrypted {
                         pool: "sapling",
                         index: i as u32,
                         kind,
-                        value,
+                        value: note.value().inner(),
                         memo: memo_text(&memo),
                         to,
+                        receipt,
                     });
                 }
             }
@@ -635,27 +651,9 @@ impl Scanner {
         if let Some(keys) = &self.orchard {
             for (pool, list) in [("orchard", &o.orchard), ("ironwood", &o.ironwood)] {
                 for (i, out) in list.iter().enumerate() {
-                    let Some(full) = FullOutput::parse(out) else {
+                    let Some((full, compact)) = FullOutput::parse_action(out) else {
                         continue;
                     };
-                    let Some(nf) = out
-                        .nullifier
-                        .as_deref()
-                        .and_then(|h| hex::decode(h).ok())
-                        .and_then(|b| <[u8; 32]>::try_from(b).ok())
-                    else {
-                        continue;
-                    };
-                    let (Some(nf), Some(cmx)) = (
-                        Option::<OrchardNf>::from(OrchardNf::from_bytes(&nf)),
-                        Option::<OrchardCmx>::from(OrchardCmx::from_bytes(&full.cm)),
-                    ) else {
-                        continue;
-                    };
-                    let mut prefix = [0u8; 52];
-                    prefix.copy_from_slice(&full.enc[..52]);
-                    let compact =
-                        CompactAction::from_parts(nf, cmx, EphemeralKeyBytes(full.epk), prefix);
                     let hit = if pool == "orchard" {
                         let d = OrchardDomain::for_compact_action(&compact);
                         self.orchard_full(keys, &d, &full)
@@ -663,14 +661,30 @@ impl Scanner {
                         let d = IronwoodDomain::for_compact_action(&compact);
                         self.orchard_full(keys, &d, &full)
                     };
-                    if let Some((kind, value, memo, to)) = hit {
+                    if let Some((kind, note, memo, to)) = hit {
+                        let receipt = o.txid.as_deref().and_then(|txid| {
+                            Receipt {
+                                network: self.network,
+                                pool: if pool == "orchard" {
+                                    Pool::Orchard
+                                } else {
+                                    Pool::Ironwood
+                                },
+                                txid: txid.to_string(),
+                                index: i as u16,
+                                addr: note.recipient().to_raw_address_bytes(),
+                                rseed: *note.rseed().as_bytes(),
+                            }
+                            .encode()
+                        });
                         found.push(Decrypted {
                             pool,
                             index: i as u32,
                             kind,
-                            value,
+                            value: note.value().inner(),
                             memo: memo_text(&memo),
                             to,
+                            receipt,
                         });
                     }
                 }
@@ -697,7 +711,7 @@ impl Scanner {
         keys: &OrchardKeys,
         domain: &orchard::note_encryption::NoteEncryptionDomain<V>,
         full: &FullOutput,
-    ) -> Option<(&'static str, u64, [u8; 512], Option<String>)>
+    ) -> Option<(&'static str, orchard::Note, [u8; 512], Option<String>)>
     where
         orchard::note_encryption::NoteEncryptionDomain<V>: zcash_note_encryption::Domain<
             IncomingViewingKey = OrchardPivk,
@@ -716,7 +730,7 @@ impl Scanner {
                 } else {
                     "change"
                 };
-                return Some((kind, note.value().inner(), memo, None));
+                return Some((kind, note, memo, None));
             }
         }
         let fvk = keys.fvk.as_ref()?;
@@ -734,17 +748,295 @@ impl Scanner {
                 .ok()?;
                 let to = ZcashAddress::from_unified(self.net_type(), ua).encode();
                 // Change to our own internal address is already reported by the IVK pass.
-                return Some(("sent", note.value().inner(), memo, Some(to)));
+                return Some(("sent", note, memo, Some(to)));
             }
         }
         None
     }
 }
 
+/* ------------------------------------------------------------------ native */
+
+/// The same scanner for native Rust (ZScan's treasury indexer), so the server and the browser
+/// find exactly the same notes.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod native {
+    pub use super::{Decrypted, FoundNote, ScanResult, Spend};
+
+    pub struct Key(super::Scanner);
+
+    impl Key {
+        /// Parses a viewing key (refuses spending keys and seed phrases).
+        pub fn parse(key: &str) -> Result<Key, String> {
+            super::Scanner::parse(key).map(Key)
+        }
+        /// "mainnet", "testnet" or "regtest".
+        pub fn network(&self) -> &'static str {
+            super::net_name(self.0.network)
+        }
+        /// A full viewing key: finds spends and outgoing payments too.
+        pub fn is_full(&self) -> bool {
+            self.0.orchard.as_ref().map_or(true, |o| o.fvk.is_some())
+                && self.0.sapling.as_ref().map_or(true, |s| s.fvk.is_some())
+        }
+        /// Trial-decrypts one `/v1/compact` payload ("ZSC1" layout).
+        pub fn scan(&mut self, data: &[u8]) -> Result<ScanResult, String> {
+            self.0.scan_blocks(data)
+        }
+        /// Transactions among the scanned blocks that spent these nullifiers (hex).
+        pub fn spent_by(&self, nullifiers: Vec<String>) -> Vec<Spend> {
+            self.0.find_spends(nullifiers)
+        }
+        pub fn clear_spends(&mut self) {
+            self.0.spends.clear();
+            self.0.spend_txs.clear();
+        }
+        /// Decrypts a transaction's full outputs, given as the JSON of
+        /// `GET /v1/tx/{txid}/shielded`; receipts are included when `txid` is set.
+        pub fn decrypt_tx(&self, outputs_json: &str, txid: Option<&str>) -> Result<Vec<Decrypted>, String> {
+            let mut o: super::TxOutputs = serde_json::from_str(outputs_json).map_err(|e| e.to_string())?;
+            if txid.is_some() {
+                o.txid = txid.map(String::from);
+            }
+            Ok(self.0.decrypt_outputs(&o))
+        }
+    }
+}
+
+
+/* ------------------------------------------------------------------ receipts */
+
+// A receipt proves one shielded output (recipient, value, memo) to anyone, without a viewing key.
+// It carries the note's recipient address and `rseed`: the verifier rebuilds `esk` and `pk_d`
+// from them, decrypts the on-chain ciphertext and checks it against the note commitment
+// (`try_output_recovery_with_pkd_esk`). Nothing else about the wallet is revealed: the
+// nullifier needs the key's `nk`, so the receipt doesn't tell whether the note was spent.
+//
+// Binary layout (then base64url, no padding):
+//   version u8 = 1 | network u8 (0 main, 1 test) | pool u8 (0 sapling, 1 orchard, 2 ironwood)
+//   | output index u16 LE | txid [32] (display order) | address [43] | rseed [32]
+
+const RECEIPT_VERSION: u8 = 1;
+const RECEIPT_LEN: usize = 1 + 1 + 1 + 2 + 32 + 43 + 32;
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Pool {
+    Sapling,
+    Orchard,
+    Ironwood,
+}
+
+impl Pool {
+    fn name(self) -> &'static str {
+        match self {
+            Pool::Sapling => "sapling",
+            Pool::Orchard => "orchard",
+            Pool::Ironwood => "ironwood",
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+struct Receipt {
+    network: Network,
+    pool: Pool,
+    txid: String,
+    index: u16,
+    addr: [u8; 43],
+    rseed: [u8; 32],
+}
+
+impl Receipt {
+    fn encode(&self) -> Option<String> {
+        let txid: [u8; 32] = hex::decode(&self.txid).ok()?.try_into().ok()?;
+        let mut b = Vec::with_capacity(RECEIPT_LEN);
+        b.push(RECEIPT_VERSION);
+        b.push(match self.network {
+            Network::Main => 0,
+            _ => 1,
+        });
+        b.push(self.pool as u8);
+        b.extend_from_slice(&self.index.to_le_bytes());
+        b.extend_from_slice(&txid);
+        b.extend_from_slice(&self.addr);
+        b.extend_from_slice(&self.rseed);
+        Some(b64url_encode(&b))
+    }
+
+    fn decode(token: &str) -> Result<Receipt, String> {
+        let bad = || String::from("This receipt is malformed or incomplete. Check that the whole link was copied.");
+        let b = b64url_decode(token.trim()).ok_or_else(bad)?;
+        if b.len() != RECEIPT_LEN {
+            return Err(bad());
+        }
+        if b[0] != RECEIPT_VERSION {
+            return Err(String::from("This receipt was made by a newer version of ZScan Proof."));
+        }
+        let network = match b[1] {
+            0 => Network::Main,
+            1 => Network::Test,
+            _ => return Err(bad()),
+        };
+        let pool = match b[2] {
+            0 => Pool::Sapling,
+            1 => Pool::Orchard,
+            2 => Pool::Ironwood,
+            _ => return Err(bad()),
+        };
+        Ok(Receipt {
+            network,
+            pool,
+            index: u16::from_le_bytes([b[3], b[4]]),
+            txid: hex::encode(&b[5..37]),
+            addr: b[37..80].try_into().expect("length checked"),
+            rseed: b[80..112].try_into().expect("length checked"),
+        })
+    }
+}
+
+const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+fn b64url_encode(data: &[u8]) -> String {
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
+    for chunk in data.chunks(3) {
+        let n = chunk.iter().enumerate().fold(0u32, |n, (i, &c)| n | (c as u32) << (16 - 8 * i));
+        for i in 0..=chunk.len() {
+            out.push(B64[(n >> (18 - 6 * i) & 63) as usize] as char);
+        }
+    }
+    out
+}
+
+fn b64url_decode(s: &str) -> Option<Vec<u8>> {
+    let mut out = Vec::with_capacity(s.len() * 3 / 4);
+    let (mut acc, mut bits) = (0u32, 0u32);
+    for c in s.bytes() {
+        let v = B64.iter().position(|&x| x == c)? as u32;
+        acc = acc << 6 | v;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits & 0xff) as u8);
+        }
+    }
+    Some(out)
+}
+
+#[derive(Serialize)]
+struct ReceiptHeader {
+    network: &'static str,
+    pool: &'static str,
+    txid: String,
+    index: u16,
+}
+
+#[derive(Serialize)]
+struct VerifiedReceipt {
+    network: &'static str,
+    pool: &'static str,
+    txid: String,
+    index: u16,
+    value: u64,
+    /// The recipient, as a Sapling address or a Unified Address with one shielded receiver.
+    recipient: String,
+    memo: Option<String>,
+}
+
+/// What a receipt points at (network, pool, txid, output), to fetch that transaction's outputs
+/// before `verify_receipt`. Errors on a malformed receipt.
+#[wasm_bindgen]
+pub fn parse_receipt(token: &str) -> Result<JsValue, JsError> {
+    let r = Receipt::decode(token).map_err(|e| JsError::new(&e))?;
+    Ok(serde_wasm_bindgen::to_value(&ReceiptHeader {
+        network: net_name(r.network),
+        pool: r.pool.name(),
+        txid: r.txid,
+        index: r.index,
+    })?)
+}
+
+/// Checks a receipt against the transaction's outputs (`GET /v1/tx/{txid}/shielded`) and returns
+/// what it proves: value, recipient and memo. Errors when the receipt doesn't match the chain.
+#[wasm_bindgen]
+pub fn verify_receipt(token: &str, outputs: JsValue) -> Result<JsValue, JsError> {
+    let o: TxOutputs = serde_wasm_bindgen::from_value(outputs)?;
+    let r = Receipt::decode(token).map_err(|e| JsError::new(&e))?;
+    let v = check_receipt(&r, &o).map_err(|e| JsError::new(&e))?;
+    Ok(serde_wasm_bindgen::to_value(&v)?)
+}
+
+fn check_receipt(r: &Receipt, o: &TxOutputs) -> Result<VerifiedReceipt, String> {
+    let no_output = || format!("Transaction {} has no {} output #{}.", r.txid, r.pool.name(), r.index);
+    let mismatch = || String::from("This receipt does not match the transaction on chain: it was altered or made up.");
+    let i = r.index as usize;
+    let (value, recipient, memo) = match r.pool {
+        Pool::Sapling => {
+            let out = o.sapling.get(i).ok_or_else(no_output)?;
+            let full = FullOutput::parse(out).ok_or_else(no_output)?;
+            let addr = sapling_crypto::PaymentAddress::from_bytes(&r.addr).ok_or_else(mismatch)?;
+            let note = sapling_crypto::Note::from_parts(
+                addr,
+                sapling_crypto::value::NoteValue::from_raw(0),
+                sapling_crypto::Rseed::AfterZip212(r.rseed),
+            );
+            let esk = SaplingDomain::derive_esk(&note).ok_or_else(mismatch)?;
+            let domain = SaplingDomain::new(Zip212Enforcement::On);
+            let (note, to, memo) =
+                try_output_recovery_with_pkd_esk(&domain, SaplingDomain::get_pk_d(&note), esk, &full)
+                    .ok_or_else(mismatch)?;
+            let to = ZcashAddress::from_sapling(r.network, to.to_bytes()).encode();
+            (note.value().inner(), to, memo)
+        }
+        Pool::Orchard | Pool::Ironwood => {
+            let list = if r.pool == Pool::Orchard { &o.orchard } else { &o.ironwood };
+            let out = list.get(i).ok_or_else(no_output)?;
+            let (full, compact) = FullOutput::parse_action(out).ok_or_else(no_output)?;
+            let addr = Option::<orchard::Address>::from(orchard::Address::from_raw_address_bytes(&r.addr))
+                .ok_or_else(mismatch)?;
+            let rho = compact.rho();
+            let rseed = Option::<RandomSeed>::from(RandomSeed::from_bytes(r.rseed, &rho)).ok_or_else(mismatch)?;
+            let version = if r.pool == Pool::Orchard { NoteVersion::V2 } else { NoteVersion::V3 };
+            let note = Option::<orchard::Note>::from(orchard::Note::from_parts(
+                addr,
+                orchard::value::NoteValue::from_raw(0),
+                rho,
+                rseed,
+                version,
+            ))
+            .ok_or_else(mismatch)?;
+            let found = if r.pool == Pool::Orchard {
+                let d = OrchardDomain::for_compact_action(&compact);
+                let esk = OrchardDomain::derive_esk(&note).ok_or_else(mismatch)?;
+                try_output_recovery_with_pkd_esk(&d, OrchardDomain::get_pk_d(&note), esk, &full)
+            } else {
+                let d = IronwoodDomain::for_compact_action(&compact);
+                let esk = IronwoodDomain::derive_esk(&note).ok_or_else(mismatch)?;
+                try_output_recovery_with_pkd_esk(&d, IronwoodDomain::get_pk_d(&note), esk, &full)
+            };
+            let (note, to, memo) = found.ok_or_else(mismatch)?;
+            let ua = unified::Address::try_from_items(vec![unified::Receiver::Orchard(to.to_raw_address_bytes())])
+                .map_err(|_| mismatch())?;
+            (note.value().inner(), ZcashAddress::from_unified(r.network, ua).encode(), memo)
+        }
+    };
+    Ok(VerifiedReceipt {
+        network: net_name(r.network),
+        pool: r.pool.name(),
+        txid: r.txid.clone(),
+        index: r.index,
+        value,
+        recipient,
+        memo: memo_text(&memo),
+    })
+}
+
 /* ------------------------------------------------------------------ full outputs */
 
 #[derive(serde::Deserialize)]
 struct TxOutputs {
+    /// Set by the caller to get a receipt for each decrypted output.
+    #[serde(default)]
+    txid: Option<String>,
     sapling: Vec<OutputHex>,
     orchard: Vec<OutputHex>,
     ironwood: Vec<OutputHex>,
@@ -783,6 +1075,21 @@ impl FullOutput {
     }
 }
 
+impl FullOutput {
+    /// An Orchard or Ironwood action: its full ciphertexts and the compact form that carries
+    /// `rho` (the action's nullifier).
+    fn parse_action(o: &OutputHex) -> Option<(Self, CompactAction)> {
+        let full = FullOutput::parse(o)?;
+        let nf: [u8; 32] = hex::decode(o.nullifier.as_deref()?).ok()?.try_into().ok()?;
+        let nf = Option::<OrchardNf>::from(OrchardNf::from_bytes(&nf))?;
+        let cmx = Option::<OrchardCmx>::from(OrchardCmx::from_bytes(&full.cm))?;
+        let mut prefix = [0u8; 52];
+        prefix.copy_from_slice(&full.enc[..52]);
+        let compact = CompactAction::from_parts(nf, cmx, EphemeralKeyBytes(full.epk), prefix);
+        Some((full, compact))
+    }
+}
+
 impl ShieldedOutput<SaplingDomain, ENC_CIPHERTEXT_SIZE> for FullOutput {
     fn ephemeral_key(&self) -> EphemeralKeyBytes {
         EphemeralKeyBytes(self.epk)
@@ -813,15 +1120,17 @@ where
 }
 
 #[derive(Serialize)]
-struct Decrypted {
-    pool: &'static str,
-    index: u32,
+pub struct Decrypted {
+    pub pool: &'static str,
+    pub index: u32,
     /// "received", "change" or "sent".
-    kind: &'static str,
-    value: u64,
-    memo: Option<String>,
+    pub kind: &'static str,
+    pub value: u64,
+    pub memo: Option<String>,
     /// Recipient of a payment this key sent.
-    to: Option<String>,
+    pub to: Option<String>,
+    /// Receipt proving this output (see `verify_receipt`), when the caller passed the txid.
+    pub receipt: Option<String>,
 }
 
 /// ZIP 302 memo: text when the first byte is ≤ 0xF4, nothing for the empty memo (0xF6),
@@ -842,7 +1151,7 @@ fn memo_text(memo: &[u8; 512]) -> Option<String> {
 mod tests {
     use super::*;
     use orchard::keys::SpendingKey;
-    use orchard::note::{NoteVersion, RandomSeed, Rho};
+    use orchard::note::Rho;
     use orchard::note_encryption::IronwoodNoteEncryption;
     use orchard::value::NoteValue;
     use zcash_note_encryption::Domain;
@@ -944,6 +1253,7 @@ mod tests {
         );
 
         let outputs = TxOutputs {
+            txid: None,
             sapling: vec![],
             orchard: vec![],
             ironwood: vec![OutputHex {
@@ -961,6 +1271,175 @@ mod tests {
             (d[0].kind, d[0].value, d[0].memo.as_deref()),
             ("received", 123_456_789, Some("hello zscan"))
         );
+    }
+
+    /// Deterministic RNG for the outgoing ciphertext (its randomness only pads `ock` output).
+    struct TestRng(u8);
+    impl rand_core::RngCore for TestRng {
+        fn next_u32(&mut self) -> u32 {
+            self.0 = self.0.wrapping_add(1);
+            self.0 as u32
+        }
+        fn next_u64(&mut self) -> u64 {
+            self.next_u32() as u64
+        }
+        fn fill_bytes(&mut self, dest: &mut [u8]) {
+            for b in dest {
+                *b = self.next_u32() as u8;
+            }
+        }
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+            self.fill_bytes(dest);
+            Ok(())
+        }
+    }
+
+    /// One Orchard or Ironwood action paying `value` with `memo` to `recipient`, with a real
+    /// outgoing ciphertext for `sender_ovk`, as `/v1/tx/{txid}/shielded` would serve it.
+    fn action_to(
+        pool: Pool,
+        recipient: orchard::Address,
+        sender_ovk: Option<orchard::keys::OutgoingViewingKey>,
+        value: u64,
+        memo_text: &[u8],
+    ) -> OutputHex {
+        use orchard::note_encryption::OrchardNoteEncryption;
+        use orchard::value::{ValueCommitTrapdoor, ValueCommitment};
+        let mut nf_bytes = [0u8; 32];
+        nf_bytes[0] = 5;
+        let nf = Option::<OrchardNf>::from(OrchardNf::from_bytes(&nf_bytes)).unwrap();
+        let dummy = CompactAction::from_parts(
+            nf,
+            Option::from(OrchardCmx::from_bytes(&[0; 32])).unwrap(),
+            EphemeralKeyBytes([0; 32]),
+            [0; 52],
+        );
+        let rho: Rho = dummy.rho();
+        let rseed = Option::<RandomSeed>::from(RandomSeed::from_bytes([11; 32], &rho)).unwrap();
+        let version = if pool == Pool::Orchard { NoteVersion::V2 } else { NoteVersion::V3 };
+        let note = Option::<orchard::Note>::from(orchard::Note::from_parts(
+            recipient,
+            NoteValue::from_raw(value),
+            rho,
+            rseed,
+            version,
+        ))
+        .unwrap();
+        let mut memo = [0u8; 512];
+        memo[..memo_text.len()].copy_from_slice(memo_text);
+        let cmx = OrchardCmx::from(note.commitment());
+        let rcv = Option::<ValueCommitTrapdoor>::from(ValueCommitTrapdoor::from_bytes([1; 32])).unwrap();
+        let cv = ValueCommitment::derive(
+            NoteValue::from_raw(value) - NoteValue::from_raw(0),
+            rcv,
+        );
+        let (ct, out, epk) = if pool == Pool::Orchard {
+            let enc = OrchardNoteEncryption::new(sender_ovk, note, memo);
+            (
+                enc.encrypt_note_plaintext(),
+                enc.encrypt_outgoing_plaintext(&cv, &cmx, &mut TestRng(0)),
+                OrchardDomain::epk_bytes(enc.epk()).0,
+            )
+        } else {
+            let enc = IronwoodNoteEncryption::new(sender_ovk, note, memo);
+            (
+                enc.encrypt_note_plaintext(),
+                enc.encrypt_outgoing_plaintext(&cv, &cmx, &mut TestRng(0)),
+                IronwoodDomain::epk_bytes(enc.epk()).0,
+            )
+        };
+        OutputHex {
+            nullifier: Some(hex::encode(nf_bytes)),
+            cm: hex::encode(cmx.to_bytes()),
+            cv: hex::encode(cv.to_bytes()),
+            epk: hex::encode(epk),
+            enc_ciphertext: hex::encode(ct),
+            out_ciphertext: hex::encode(out),
+        }
+    }
+
+    fn tx_with(pool: Pool, action: OutputHex) -> TxOutputs {
+        let (mut orchard, mut ironwood) = (vec![], vec![]);
+        if pool == Pool::Orchard { orchard.push(action) } else { ironwood.push(action) }
+        TxOutputs { txid: Some(hex::encode([0xab; 32])), sapling: vec![], orchard, ironwood }
+    }
+
+    /// The recipient (incoming key) and the sender (outgoing key) can each make a receipt, and
+    /// anyone can verify it against the transaction without any key.
+    #[test]
+    fn receipts_round_trip_for_recipient_and_sender() {
+        let recipient_fvk = fvk();
+        let to = recipient_fvk.address_at(0u32, Scope::External);
+        let sk = Option::<SpendingKey>::from(SpendingKey::from_bytes([9; 32])).unwrap();
+        let sender_fvk = OrchardFvk::from(&sk);
+        for pool in [Pool::Orchard, Pool::Ironwood] {
+            let tx = tx_with(pool, action_to(pool, to, Some(sender_fvk.to_ovk(Scope::External)), 250_000_000, b"invoice 42"));
+            for key in [ufvk(&recipient_fvk), ufvk(&sender_fvk)] {
+                let s = Scanner::parse(&key).unwrap();
+                let d = s.decrypt_outputs(&tx);
+                assert_eq!(d.len(), 1, "{pool:?}: output found");
+                let token = d[0].receipt.as_deref().expect("receipt");
+                let r = Receipt::decode(token).unwrap();
+                assert_eq!((r.pool, r.index, r.txid.as_str()), (pool, 0, hex::encode([0xab; 32]).as_str()));
+                let v = check_receipt(&r, &tx).unwrap();
+                assert_eq!((v.value, v.memo.as_deref(), v.pool), (250_000_000, Some("invoice 42"), pool.name()));
+                let want = unified::Address::try_from_items(vec![unified::Receiver::Orchard(to.to_raw_address_bytes())]).unwrap();
+                assert_eq!(v.recipient, ZcashAddress::from_unified(Network::Main, want).encode());
+            }
+        }
+    }
+
+    /// A receipt fails once any byte of what it proves is changed, or against another output.
+    #[test]
+    fn altered_receipts_are_rejected() {
+        let fvk = fvk();
+        let to = fvk.address_at(0u32, Scope::External);
+        let tx = tx_with(Pool::Ironwood, action_to(Pool::Ironwood, to, None, 1_000, b"hi"));
+        let s = Scanner::parse(&ufvk(&fvk)).unwrap();
+        let token = s.decrypt_outputs(&tx)[0].receipt.clone().unwrap();
+        let good = Receipt::decode(&token).unwrap();
+        assert!(check_receipt(&good, &tx).is_ok());
+
+        let mut r = Receipt::decode(&token).unwrap();
+        r.rseed[0] ^= 1;
+        assert!(check_receipt(&r, &tx).is_err(), "altered rseed");
+
+        let other = fvk.address_at(1u32, Scope::External);
+        let mut r = Receipt::decode(&token).unwrap();
+        r.addr = other.to_raw_address_bytes();
+        assert!(check_receipt(&r, &tx).is_err(), "other recipient");
+
+        let mut r = Receipt::decode(&token).unwrap();
+        r.pool = Pool::Orchard;
+        assert!(check_receipt(&r, &tx).is_err(), "wrong pool");
+
+        let mut r = Receipt::decode(&token).unwrap();
+        r.index = 1;
+        assert!(check_receipt(&r, &tx).is_err(), "missing output");
+
+        // Another action with the same recipient and seed but a different value.
+        let forged = tx_with(Pool::Ironwood, action_to(Pool::Ironwood, to, None, 2_000, b"hi"));
+        let v = check_receipt(&good, &forged).unwrap();
+        assert_eq!(v.value, 2_000, "the value always comes from the chain, never the receipt");
+
+        assert!(Receipt::decode("not-a-receipt").is_err());
+        assert!(Receipt::decode(&token[..token.len() - 4]).is_err());
+    }
+
+    #[test]
+    fn receipt_encoding_round_trips() {
+        let r = Receipt {
+            network: Network::Test,
+            pool: Pool::Sapling,
+            txid: hex::encode([7u8; 32]),
+            index: 513,
+            addr: [3; 43],
+            rseed: [4; 32],
+        };
+        let token = r.encode().unwrap();
+        assert_eq!(token.len(), 150);
+        assert!(token.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_'));
+        assert_eq!(Receipt::decode(&token).unwrap(), r);
     }
 
     #[test]

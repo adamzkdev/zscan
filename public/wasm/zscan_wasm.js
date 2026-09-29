@@ -172,6 +172,38 @@ function takeFromExternrefTable0(idx) {
     wasm.__externref_table_dealloc(idx);
     return value;
 }
+/**
+ * What a receipt points at (network, pool, txid, output), to fetch that transaction's outputs
+ * before `verify_receipt`. Errors on a malformed receipt.
+ * @param {string} token
+ * @returns {any}
+ */
+export function parse_receipt(token) {
+    const ptr0 = passStringToWasm0(token, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.parse_receipt(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * Checks a receipt against the transaction's outputs (`GET /v1/tx/{txid}/shielded`) and returns
+ * what it proves: value, recipient and memo. Errors when the receipt doesn't match the chain.
+ * @param {string} token
+ * @param {any} outputs
+ * @returns {any}
+ */
+export function verify_receipt(token, outputs) {
+    const ptr0 = passStringToWasm0(token, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.verify_receipt(ptr0, len0, outputs);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
 
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
