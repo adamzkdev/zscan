@@ -7,6 +7,7 @@ import { NameTag } from "@/components/NameTag";
 import { QrButton } from "@/components/QrButton";
 import { TimeAgo } from "@/components/TimeAgo";
 import { Card, PageTitle, Pill, Zec } from "@/components/ui";
+import { CONSOLE_URL } from "@/lib/nav";
 import { apiOrNull } from "@/lib/api";
 import { int, utc } from "@/lib/format";
 import type { AddressDetail, AddressInscriptions, Price } from "@/lib/types";
@@ -40,6 +41,13 @@ export default async function AddressPage(props: PageProps<"/address/[address]">
             Address <span className="break-all font-mono text-base font-normal">{a.address}</span>
             <CopyButton value={a.address} />
             <QrButton value={a.address} />
+            <a
+              href={`${CONSOLE_URL}/watchlist?add=${encodeURIComponent(a.address)}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-normal text-text hover:text-link"
+              title="Get an email or Telegram alert when this address receives or sends ZEC"
+            >
+              🔔 Watch
+            </a>
           </span>
         }
       />
