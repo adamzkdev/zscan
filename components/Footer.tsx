@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AI_URL, CONSOLE_URL, STATS_URL } from "@/lib/nav";
+import { AI_URL, STATS_URL } from "@/lib/nav";
 import { Logo } from "./Logo";
 
 const COLUMNS: { title: string; links: [string, string][] }[] = [
@@ -21,7 +21,6 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
       [AI_URL, "Ask AI"],
       ["/developers", "API Documentation"],
       ["/tools", "Tools"],
-      [CONSOLE_URL, "Watchlist & Alerts"],
       ["/brand", "Media Kit"],
       ["/status", "Status"],
       ["/privacy", "Privacy Policy"],
