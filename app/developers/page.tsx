@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Card, PageTitle } from "@/components/ui";
+import { CONSOLE_URL } from "@/lib/nav";
 
 export const metadata: Metadata = {
   title: "Developer API",
@@ -39,7 +40,7 @@ export default function DevelopersPage() {
     <div className="space-y-6">
       <PageTitle eyebrow="Build on Zcash" title="Developer API">
         A free, open REST API for Zcash data. No key required. Amounts are in zatoshis (1 ZEC = 100,000,000 zat).
-        Anonymous requests are rate-limited per IP.
+        Anonymous requests are rate-limited per IP; with an API key (header X-API-Key), requests count against the key&apos;s own limit instead.
       </PageTitle>
       <div className="flex flex-wrap gap-2">
         <a href="/api-docs" className="rounded-lg bg-link px-4 py-2 text-sm font-medium text-white hover:bg-link-hover">
@@ -47,6 +48,9 @@ export default function DevelopersPage() {
         </a>
         <a href="/openapi.json" className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:text-text">
           OpenAPI spec
+        </a>
+        <a href={`${CONSOLE_URL}/keys`} className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:text-text">
+          Get an API key
         </a>
       </div>
       <Card title="Quick start">

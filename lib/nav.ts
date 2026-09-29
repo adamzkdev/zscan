@@ -16,6 +16,9 @@ export const STATS_URL = (process.env.NEXT_PUBLIC_STATS_URL ?? "https://stats.zs
 /// The account console (API keys, watchlist, alerts). Inlined at build time.
 export const CONSOLE_URL = (process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://console.zscan.cash").replace(/\/$/, "");
 
+const toolLinks = (menu: "developers" | "tools"): NavItem[] =>
+  TOOL_PAGES.filter((p) => p.menu === menu).map((p) => ({ href: `/tools/${p.slug}`, label: p.title }));
+
 export const NAV: NavMenu[] = [
   { label: "Home", href: "/" },
   {
@@ -39,20 +42,19 @@ export const NAV: NavMenu[] = [
         title: "Developers",
         items: [
           { href: "/developers", label: "API Documentation" },
-          { href: `${CONSOLE_URL}/keys`, label: "API Keys", external: true },
-          ...TOOL_PAGES.map((p) => ({ href: `/tools/${p.slug}`, label: p.title })),
+          { href: "/zips", label: "Improvement Proposals (ZIPs)" },
+          ...toolLinks("developers"),
         ],
       },
       {
         title: "Tools",
-        items: [{ href: "/viewing-key", label: "Viewing Key Scanner" }],
+        items: [{ href: "/viewing-key", label: "Viewing Key Scanner" }, ...toolLinks("tools")],
       },
       {
         title: "Explore",
         items: [
           { href: "/fees", label: "Fee Tracker" },
           { href: "/upgrades", label: "Network Upgrades" },
-          { href: "/ironwood", label: "Ironwood Migration" },
           { href: "/supply", label: "Supply Audit" },
           { href: "/miners", label: "Mining Pools" },
         ],
@@ -61,7 +63,6 @@ export const NAV: NavMenu[] = [
         title: "Resources",
         items: [
           { href: STATS_URL, label: "Stats", external: true },
-          { href: "/zips", label: "Improvement Proposals (ZIPs)" },
           { href: "/brand", label: "Media Kit" },
           { href: "/status", label: "Status" },
           { href: "/privacy", label: "Privacy Policy" },

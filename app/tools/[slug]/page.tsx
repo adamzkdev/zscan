@@ -29,17 +29,29 @@ export const generateStaticParams = () => TOOL_PAGES.map((p) => ({ slug: p.slug 
 export async function generateMetadata(props: PageProps<"/tools/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
   const page = TOOL_PAGES.find((p) => p.slug === slug);
-  return page ? { title: `Zcash ${page.title}`, description: `${page.blurb}. Free, in the browser, on the open ZScan API.` } : {};
+  return page ? { title: `Zcash ${page.title}`, description: `${page.blurb}. Free, in your browser, on the open ZScan API.` } : {};
 }
 
 export default async function ToolPage(props: PageProps<"/tools/[slug]">) {
   const { slug } = await props.params;
   const page = TOOL_PAGES.find((p) => p.slug === slug);
   if (!page) notFound();
+  const eyebrow = page.menu === "developers" ? "Developers" : "Tools";
+  if (page.tools.length === 1) {
+    const [t] = page.tools;
+    return (
+      <div className="space-y-4">
+        <PageTitle eyebrow={eyebrow} title={t.title}>
+          {t.blurb}
+        </PageTitle>
+        {TOOLS[t.id]}
+      </div>
+    );
+  }
   return (
     <div className="space-y-8">
       <div>
-        <PageTitle eyebrow="Developers" title={page.title}>
+        <PageTitle eyebrow={eyebrow} title={page.title}>
           {page.blurb}.
         </PageTitle>
         <nav className="-mt-1 flex flex-wrap gap-2" aria-label="On this page">

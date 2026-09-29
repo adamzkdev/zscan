@@ -20,7 +20,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
       [STATS_URL, "Stats"],
       [AI_URL, "Ask AI"],
       ["/developers", "API Documentation"],
-      ["/tools", "Developer Tools"],
+      ["/tools", "Tools"],
       ["/viewing-key", "Viewing Key Scanner"],
       ["/brand", "Media Kit"],
       ["/status", "Status"],

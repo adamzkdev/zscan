@@ -4,8 +4,8 @@ import { Countdown } from "@/components/LiveSupply";
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { IndexingStarting } from "@/app/loading-state";
-import { int } from "@/lib/format";
-import type { Upgrade, Upgrades } from "@/lib/types";
+import { int, pct, zec } from "@/lib/format";
+import type { Migration, Upgrade, Upgrades } from "@/lib/types";
 import { zipUrl } from "@/lib/zips";
 
 export const metadata: Metadata = {
@@ -55,7 +55,7 @@ function when(u: Upgrade) {
 }
 
 export default async function UpgradesPage() {
-  const data = await apiOrNull<Upgrades>("/v1/upgrades");
+  const [data, migration] = await Promise.all([apiOrNull<Upgrades>("/v1/upgrades"), apiOrNull<Migration>("/v1/ironwood/migration")]);
   if (!data) return <IndexingStarting />;
   const next = data.upgrades.find((u) => !u.activated);
   const past = data.upgrades.filter((u) => u.activated).reverse();
@@ -145,6 +145,8 @@ export default async function UpgradesPage() {
         </section>
       )}
 
+      {migration && <IronwoodMigration m={migration} />}
+
       <Card title="History" pad={false}>
         <ol className="relative px-4 py-2">
           {past.map((u, i) => (
@@ -169,6 +171,11 @@ export default async function UpgradesPage() {
                     </span>
                   )}
                   <ZipLink name={u.name} />
+                  {u.name === "Nu6_3" && (
+                    <Link href="/ironwood" className="text-sm text-link hover:text-link-hover">
+                      Ironwood migration
+                    </Link>
+                  )}
                 </p>
                 {u.summary && <p className="mt-0.5 text-sm text-muted">{u.summary}</p>}
               </div>
@@ -177,6 +184,36 @@ export default async function UpgradesPage() {
         </ol>
       </Card>
     </div>
+  );
+}
+
+/** NU6.3 sealed Orchard and opened Ironwood: the migration it started, in brief. */
+function IronwoodMigration({ m }: { m: Migration }) {
+  const inIronwood = m.ironwood_now / (m.ironwood_now + m.orchard_now);
+  return (
+    <Card
+      title="Ironwood migration (NU6.3)"
+      action={
+        <Link href="/ironwood" className="text-sm text-link hover:text-link-hover">
+          Full tracker →
+        </Link>
+      }
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <p>
+          <span className="num text-3xl font-semibold text-ironwood">{pct(m.migrated_ratio ?? inIronwood)}</span>{" "}
+          <span className="text-sm text-muted">{m.migrated_ratio != null ? "migrated out of Orchard" : "already in Ironwood"}</span>
+        </p>
+        <p className="text-sm text-muted">
+          <span className="num text-text">{zec(m.ironwood_now, 0)}</span> ZEC in Ironwood ·{" "}
+          <span className="num text-text">{zec(m.orchard_now, 0)}</span> ZEC left in Orchard
+        </p>
+      </div>
+      <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
+        <div style={{ width: `${inIronwood * 100}%`, background: "var(--pool-ironwood)" }} />
+        <div className="ml-[2px] flex-1" style={{ background: "var(--pool-orchard)" }} />
+      </div>
+    </Card>
   );
 }
 
