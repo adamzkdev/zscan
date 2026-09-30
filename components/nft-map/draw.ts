@@ -150,7 +150,7 @@ function priceAxes(ctx: CanvasRenderingContext2D, p: PriceAxes, cam: Camera, w: 
 
 /** Draws the map. With `overlay`, the thumbnails are left to the WebGL layer underneath: only
  *  sharp pictures, marks, labels and the magnifier are drawn, on a transparent canvas. */
-export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: Camera, sc: Scene, opts: { overlay?: boolean } = {}) {
+export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: Camera, sc: Scene, opts: { overlay?: boolean; lens?: boolean } = {}) {
   if (opts.overlay) ctx.clearRect(0, 0, w, h);
   else {
     ctx.fillStyle = STAGE.bg;
@@ -299,6 +299,31 @@ export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: C
     else ctx.rect(cx - size / 2 - o, cy - size / 2 - o, size + 2 * o, size + 2 * o);
     ctx.stroke();
   };
-  if (sc.hover !== sc.selected) outline(sc.hover, "rgba(255,255,255,0.9)", 1.5);
   outline(sc.selected, STAGE.accent, 2.5);
+
+  // The magnifier: the item under the pointer, three times larger, in place.
+  if (opts.lens && sc.hover >= 0 && sc.s[sc.hover]) {
+    const i = sc.hover;
+    const [cx, cy] = toScreen(cam, w, h, sc.x[i], sc.y[i]);
+    const size = Math.min(Math.max(sc.s[i] * cam.k * 3, 72), 160);
+    const x = cx - size / 2,
+      y = cy - size / 2;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    if (sc.round) ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+    else ctx.rect(x, y, size, size);
+    ctx.fill();
+    ctx.restore();
+    ctx.imageSmoothingEnabled = false;
+    thumb(ctx, sc, sc.items[i].id, x, y, size, sc.round);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = i === sc.selected ? STAGE.accent : "#fff";
+    ctx.beginPath();
+    if (sc.round) ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+    else ctx.rect(x - 1, y - 1, size + 2, size + 2);
+    ctx.stroke();
+  }
 }

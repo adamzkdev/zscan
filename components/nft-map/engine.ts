@@ -290,7 +290,7 @@ export class MapEngine {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const gl = this.sprites.ok;
     if (gl) this.sprites.draw(this.w, this.h, this.cam, p.x, p.y, p.s, this.alpha, l.round);
-    draw(ctx, this.w, this.h, this.cam, sc, { overlay: gl });
+    draw(ctx, this.w, this.h, this.cam, sc, { overlay: gl, lens: !this.anim });
     if (!this.anim) this.loadSharp(sc);
     if (again) this.raf = requestAnimationFrame(this.frame);
   };
@@ -308,6 +308,8 @@ export class MapEngine {
       if (this.hd.size > 400) this.hd.delete(this.hd.keys().next().value!);
       return true;
     };
+    // The magnified item gets its full-size picture.
+    if (sc.hover >= 0) want(sc.hover);
     let wanted = 0;
     for (let i = 0; i < p.x.length && wanted < 36; i++) {
       const s = p.s[i] * this.cam.k;
