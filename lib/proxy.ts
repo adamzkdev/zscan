@@ -44,5 +44,13 @@ export async function proxy(req: Request, path: string): Promise<Response> {
     const v = res.headers.get(h);
     if (v) headers.set(h, v);
   }
+  // Node's fetch hands us the body decoded; re-compress JSON for the browser (the collection map
+  // is ~500 KB raw, ~110 KB gzipped).
+  const json = res.headers.get("content-type")?.includes("json");
+  if (json && res.body && /\bgzip\b/.test(req.headers.get("accept-encoding") ?? "")) {
+    headers.set("content-encoding", "gzip");
+    headers.set("vary", "accept-encoding");
+    return new Response(res.body.pipeThrough(new CompressionStream("gzip")), { status: res.status, headers });
+  }
   return new Response(res.body, { status: res.status, headers });
 }

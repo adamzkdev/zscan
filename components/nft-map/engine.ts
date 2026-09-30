@@ -1,7 +1,11 @@
-import { type Camera, draw, type Scene, toScreen, toWorld } from "./draw";
+import { type Camera, draw, type Scene, STAGE, toScreen, toWorld } from "./draw";
+import { SpriteLayer } from "./sprites";
 import type { Layout } from "./layouts";
 
-const ANIM_MS = 700;
+const ANIM_MS = 650;
+const FADE_MS = 450;
+/** Opacity of items outside the highlight. */
+const DIM = 0.13;
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 export interface Hover {
@@ -62,9 +66,11 @@ export class MapEngine {
   private drag = { moved: 0, pinch: false };
   private last = { x: 0, y: 0 };
   private ro: ResizeObserver;
-  private scene: Omit<Scene, "x" | "y" | "s" | "round" | "groups" | "price" | "deals" | "hover" | "hoverGroup" | "focus" | "pulse" | "hd"> = {
+  private alpha: Float32Array | null = null;
+  private fade: { from: Float32Array; to: Float32Array; t0: number } | null = null;
+  private scene: Omit<Scene, "x" | "y" | "s" | "round" | "groups" | "price" | "hover" | "hoverGroup" | "focus" | "pulse" | "hd" | "alpha"> = {
     items: [],
-    match: null,
+    deals: null,
     atlas: null,
     cell: 32,
     cols: 100,
@@ -72,11 +78,16 @@ export class MapEngine {
     sizeBy: "last",
   };
 
+  private sprites: SpriteLayer;
+
+  /** `canvas` takes the pointer and draws marks and labels; `under` gets the thumbnails. */
   constructor(
     private canvas: HTMLCanvasElement,
+    under: HTMLCanvasElement,
     private card: HTMLElement,
     private opts: { imageUrl: (id: number) => string; onHover: (h: Hover) => void; onOpen: (i: number) => void },
   ) {
+    this.sprites = new SpriteLayer(under, STAGE.bg);
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas);
     canvas.addEventListener("wheel", this.onWheel, { passive: false });
@@ -104,9 +115,23 @@ export class MapEngine {
     return { w: this.w, h: this.h };
   }
 
-  /** Items, the highlight, the atlas and other drawing inputs that don't move anything. */
+  /** Items, the atlas and other drawing inputs that don't move anything. */
   update(s: Partial<MapEngine["scene"]>) {
+    if (s.items && s.items !== this.scene.items) this.sprites.setItems(s.items.map((it) => it.id));
     Object.assign(this.scene, s);
+    const { atlas, cell, cols } = this.scene;
+    if ((s.atlas || s.cell) && atlas) this.sprites.setAtlas(atlas, cell, cols);
+    this.invalidate();
+  }
+
+  /** Highlights the items where `match` is 1 (null: all): the others fade out. */
+  highlight(match: Uint8Array | null) {
+    const n = this.scene.items.length;
+    const to = new Float32Array(n).fill(1);
+    if (match) for (let i = 0; i < n; i++) if (!match[i]) to[i] = DIM;
+    const from = this.alpha && this.alpha.length === n ? this.alpha.slice() : new Float32Array(n).fill(1);
+    this.alpha = from.slice();
+    this.fade = { from, to, t0: performance.now() };
     this.invalidate();
   }
 
@@ -183,7 +208,8 @@ export class MapEngine {
       round: l.round,
       groups: l.groups,
       price: l.price,
-      deals: l.view === "price" ? l.deals : null,
+      deals: l.view === "price" ? this.scene.deals : null,
+      alpha: this.alpha,
       hd: this.hd,
       hover: this.hover.i,
       hoverGroup: this.hover.group,
@@ -207,6 +233,7 @@ export class MapEngine {
     this.h = r.height;
     this.canvas.width = Math.round(r.width * dpr);
     this.canvas.height = Math.round(r.height * dpr);
+    this.sprites.resize(r.width, r.height, dpr);
     if (first && this.lay) this.cam = fit(this.lay, r.width, r.height);
     this.invalidate();
   }
@@ -247,6 +274,14 @@ export class MapEngine {
       if (t < 1) again = true;
       else this.camAnim = null;
     }
+    if (this.fade && this.alpha) {
+      const t = Math.min(1, (now - this.fade.t0) / FADE_MS);
+      const e = ease(t);
+      const { from, to } = this.fade;
+      for (let i = 0; i < this.alpha.length; i++) this.alpha[i] = from[i] + (to[i] - from[i]) * e;
+      if (t < 1) again = true;
+      else this.fade = null;
+    }
     const sc = this.sceneFor(l);
     if (this.focus.i >= 0) {
       const t = (now - this.focus.t0) / 1600;
@@ -261,7 +296,9 @@ export class MapEngine {
     const ctx = this.canvas.getContext("2d")!;
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    draw(ctx, this.w, this.h, this.cam, sc, { lens: !this.anim && sc.hover >= 0 });
+    const gl = this.sprites.ok;
+    if (gl) this.sprites.draw(this.w, this.h, this.cam, p.x, p.y, p.s, this.alpha, l.round);
+    draw(ctx, this.w, this.h, this.cam, sc, { lens: !this.anim && sc.hover >= 0, overlay: gl });
     if (!this.anim) this.loadSharp(sc);
     if (again) this.raf = requestAnimationFrame(this.frame);
   };

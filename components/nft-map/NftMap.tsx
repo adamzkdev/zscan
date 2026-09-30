@@ -6,7 +6,7 @@ import { int, zec } from "@/lib/format";
 import type { CollectionMap } from "@/lib/types";
 import { premiumColor, STAGE } from "./draw";
 import { type Hover, MapEngine } from "./engine";
-import { decode, type Item, layout, type Order, type Show, type SizeBy, type View } from "./layouts";
+import { dealFlags, decode, type Item, layout, type Order, type Show, type SizeBy, type View } from "./layouts";
 import { download, poster, shareFile, tweet } from "./share";
 
 export interface MapParams {
@@ -50,7 +50,8 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   const router = useRouter();
   const [data, setData] = useState<CollectionMap | null>(null);
   const [failed, setFailed] = useState(false);
-  const [atlas, setAtlas] = useState<HTMLImageElement | null>(null);
+  // The half-size atlas arrives first (a quarter of the weight), then the sharp one replaces it.
+  const [atlas, setAtlas] = useState<{ img: HTMLImageElement; cell: number } | null>(null);
   const [view, setView] = useState<View>(pick(VIEWS, initial.map, "mosaic"));
   const [order, setOrder] = useState<Order>(pick(ORDERS, initial.order, "id"));
   const [size, setSize] = useState<SizeBy>(pick(SIZES, initial.size, "last"));
@@ -66,6 +67,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
 
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const under = useRef<HTMLCanvasElement>(null);
   const card = useRef<HTMLDivElement>(null);
   const engine = useRef<MapEngine | null>(null);
   const openItem = useRef<(i: number) => void>(() => {});
@@ -79,9 +81,18 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
       .then((m: CollectionMap) => {
         if (!live) return;
         setData(m);
-        const img = new Image();
-        img.onload = () => live && setAtlas(img);
-        img.src = m.atlas.url;
+        let sharp = false;
+        const load = (url: string, cell: number, final: boolean) => {
+          const img = new Image();
+          img.onload = () => {
+            if (!live || (!final && sharp)) return;
+            if (final) sharp = true;
+            setAtlas({ img, cell });
+          };
+          img.src = url;
+        };
+        load(m.atlas.preview, m.atlas.cell / 2, false);
+        load(m.atlas.url, m.atlas.cell, true);
       })
       .catch(() => live && setFailed(true));
     return () => {
@@ -90,7 +101,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   }, [slug]);
 
   useEffect(() => {
-    const e = new MapEngine(canvas.current!, card.current!, {
+    const e = new MapEngine(canvas.current!, under.current!, card.current!, {
       imageUrl: (id) => `/v1/collections/${encodeURIComponent(slug)}/items/${id}/image`,
       onHover: setHover,
       onOpen: (i) => openItem.current(i),
@@ -124,16 +135,21 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
     return vi >= 0 ? ([ti, vi] as const) : null;
   }, [data, match]);
 
-  const shape = view === "mosaic" ? aspect : 1;
-  const lay = useMemo(() => (data ? layout(items, data, view, { order, by, size, aspect: shape }) : null), [items, data, view, order, by, size, shape]);
+  const deals = useMemo(() => (data ? dealFlags(items, data) : new Uint8Array(0)), [items, data]);
+  // How many items carry each trait value, for the rarity shown on the card.
+  const traitCounts = useMemo(() => {
+    const c = (data?.traits ?? []).map((t) => new Array<number>(t.values.length).fill(0));
+    for (const it of items) it.traits.forEach((v, t) => v >= 0 && c[t] && c[t][v]++);
+    return c;
+  }, [items, data]);
 
   const matches = useMemo(() => {
-    if (!lay || (!show && !matchPair)) return null;
+    if (!show && !matchPair) return null;
     const m = new Uint8Array(items.length);
     let n = 0;
     items.forEach((it, i) => {
       const s =
-        show === "listed" ? it.ask != null : show === "bids" ? it.bid != null : show === "sold" ? it.last != null : show === "deals" ? lay.deals[i] === 1 : true;
+        show === "listed" ? it.ask != null : show === "bids" ? it.bid != null : show === "sold" ? it.last != null : show === "deals" ? deals[i] === 1 : true;
       const t = !matchPair || it.traits[matchPair[0]] === matchPair[1];
       if (s && t) {
         m[i] = 1;
@@ -141,16 +157,29 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
       }
     });
     return { m, n };
-  }, [lay, items, show, matchPair]);
+  }, [items, show, matchPair, deals]);
+
+  const shape = view === "mosaic" ? aspect : 1;
+  const matchKey = matches ? `${show}|${match}` : "";
+  const lay = useMemo(
+    () => (data ? layout(items, data, view, { order, by, size, aspect: shape, match: matches?.m ?? null, deals }, matchKey) : null),
+    [items, data, view, order, by, size, shape, matches, deals, matchKey],
+  );
   const visible = useMemo(() => (lay ? lay.s.reduce((n, s) => n + (s ? 1 : 0), 0) : 0), [lay]);
 
   // ---- Feeding the canvas -------------------------------------------------------------------
   useEffect(() => {
-    engine.current?.update({ items, cell: data?.atlas.cell ?? 32, cols: data?.atlas.cols ?? 100, floor: data?.floor ?? null });
-  }, [items, data]);
+    engine.current?.update({ items, deals, cols: data?.atlas.cols ?? 100, floor: data?.floor ?? null });
+  }, [items, data, deals]);
   useEffect(() => {
-    engine.current?.update({ atlas, match: matches?.m ?? null, sizeBy: size });
-  }, [atlas, matches, size]);
+    if (atlas) engine.current?.update({ atlas: atlas.img, cell: atlas.cell });
+  }, [atlas]);
+  useEffect(() => {
+    engine.current?.update({ sizeBy: size });
+  }, [size]);
+  useEffect(() => {
+    if (items.length) engine.current?.highlight(matches?.m ?? null);
+  }, [items, matches]);
   useEffect(() => {
     if (!lay) return;
     engine.current?.setLayout(lay);
@@ -204,10 +233,10 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
       : view === "traits"
         ? `${int(items.length)} items grouped by ${byLabel}`
         : view === "price"
-          ? `${int(visible)} listed items: asking price against rarity rank`
+          ? `${int(visible)} listings by rarity band: asking prices against what each band sold for this week`
           : `${int(visible)} items that sold, sized by ${size === "volume" ? "volume on record" : "last sale"}`;
   const fullSubtitle = `${subtitle}${highlight ? ` · highlighted: ${highlight} (${int(matches?.n ?? 0)})` : ""}`;
-  const legend: { color: string; label: string; ring?: boolean }[] =
+  const legend: { color: string; label: string; ring?: boolean; box?: boolean }[] =
     view === "traits"
       ? [
           { color: "rgba(255,255,255,0.28)", label: "Trait floor < 1.5× floor", ring: true },
@@ -217,8 +246,8 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
         ]
       : view === "price"
         ? [
-            { color: STAGE.accent, label: "Median sale (7 days) of each rarity band" },
-            { color: STAGE.good, label: `Deal: ${Math.round((data?.deal_discount ?? 0.1) * 100)}%+ under its band's median`, ring: true },
+            { color: STAGE.accent, label: "What the rarity band sold for this week (median)" },
+            { color: STAGE.good, label: `Deal: listed ${Math.round((data?.deal_discount ?? 0.1) * 100)}%+ below that`, ring: true, box: true },
           ]
         : view === "sales" && lay?.sizeCap
           ? [{ color: "rgba(255,255,255,0.35)", label: `Bubble area = ${size === "volume" ? "volume on record" : "last sale"}, largest from ${zec(lay.sizeCap, 2)} ZEC`, ring: true }]
@@ -260,6 +289,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
 
   // ---- Hover card ---------------------------------------------------------------------------
   const it = hover.i >= 0 ? items[hover.i] : null;
+  const ref = it?.rank != null ? (data?.bands.find((b) => it.rank! >= b.from_rank && it.rank! <= b.to_rank)?.reference ?? null) : null;
   const grp = hover.group >= 0 && lay ? lay.groups[hover.group] : null;
 
   if (failed)
@@ -331,7 +361,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
           )}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-muted">Highlight</span>
-            {SHOWS.filter(([s]) => s !== "deals" || view === "price").map(([s, label]) => (
+            {SHOWS.map(([s, label]) => (
               <button key={s || "all"} type="button" onClick={() => setShow(s)} className={chip(show === s)}>
                 {label}
               </button>
@@ -371,43 +401,69 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
       </div>
 
       <div ref={wrap} className="relative h-[70vh] min-h-[420px] w-full select-none overflow-hidden" style={{ background: STAGE.bg }}>
+        <canvas ref={under} className="absolute inset-0 size-full" aria-hidden />
         <canvas ref={canvas} className="absolute inset-0 size-full cursor-grab touch-none" aria-label={`${name}: ${fullSubtitle}`} role="img" />
         {!lay && <div className="absolute inset-0 flex items-center justify-center text-sm text-[#9aa0a6]">Loading every item…</div>}
         {lay && !atlas && <div className="absolute left-3 top-3 rounded bg-black/60 px-2 py-1 text-xs text-[#9aa0a6]">Loading pictures…</div>}
 
         <div
           ref={card}
-          className={`pointer-events-none absolute left-0 top-0 w-60 rounded-lg border border-white/10 bg-[#141518]/95 text-[#e8eaed] shadow-2xl backdrop-blur transition-opacity ${it || grp ? "opacity-100" : "opacity-0"}`}
+          className={`pointer-events-none absolute left-0 top-0 w-72 rounded-lg border border-white/10 bg-[#141518]/95 text-[#e8eaed] shadow-2xl backdrop-blur transition-opacity ${it || grp ? "opacity-100" : "opacity-0"}`}
         >
-          {it && (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/v1/collections/${encodeURIComponent(slug)}/items/${it.id}/image`}
-                alt=""
-                className="aspect-square w-full rounded-t-lg bg-black [image-rendering:pixelated]"
-              />
-              <div className="space-y-1 p-3 text-xs">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-semibold">
+          {it && data && (
+            <div className="space-y-2.5 p-3 text-xs">
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/v1/collections/${encodeURIComponent(slug)}/items/${it.id}/image`}
+                  alt=""
+                  className="size-16 shrink-0 rounded-md bg-black [image-rendering:pixelated]"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
                     {name} #{it.id}
-                  </span>
-                  {it.rank != null && <span className="text-[#9aa0a6]">Rarity #{int(it.rank)}</span>}
+                  </p>
+                  {it.rank != null && (
+                    <p className="text-[#9aa0a6]">
+                      Rarity #{int(it.rank)} of {int(data.supply)} · top {Math.max(0.01, (it.rank / data.supply) * 100).toFixed(it.rank / data.supply < 0.01 ? 2 : 1)}%
+                    </p>
+                  )}
                 </div>
-                <Line k="Ask" v={it.ask != null ? `${zec(it.ask, 4)} ZEC` : "Not listed"} strong={it.ask != null} />
-                {lay?.deals[hover.i] ? <p className="text-[#2fbf9c]">Listed under what its rarity band sold for this week</p> : null}
+              </div>
+              <div className="rounded-md bg-white/5 px-2.5 py-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[#9aa0a6]">Ask</span>
+                  <span className="num text-sm font-semibold">{it.ask != null ? `${zec(it.ask, 4)} ZEC` : "Not listed"}</span>
+                </div>
+                {it.ask != null && ref != null && (
+                  <p className={deals[hover.i] ? "text-[#2fbf9c]" : "text-[#9aa0a6]"}>
+                    {it.ask <= ref ? `${Math.round((1 - it.ask / ref) * 100)}% below` : `${Math.round((it.ask / ref - 1) * 100)}% above`} what its rarity band sold for this week ({zec(ref, 3)} ZEC)
+                  </p>
+                )}
+                {it.ask != null && data.floor != null && it.ask > data.floor && <p className="text-[#9aa0a6]">{(it.ask / data.floor).toFixed(1)}× the collection floor</p>}
+              </div>
+              <div className="space-y-1">
                 <Line k="Top bid" v={it.bid != null ? `${zec(it.bid, 4)} ZEC` : "—"} />
                 <Line k="Last sale" v={it.last != null ? `${zec(it.last, 4)} ZEC` : "Never sold"} />
                 {it.sales > 0 && <Line k="Sales on record" v={`${it.sales} · ${zec(it.volume, 2)} ZEC`} />}
-                {data && lay?.view === "traits" && (
-                  <Line k={byLabel} v={data.traits[by].values[it.traits[by]] ?? "None"} />
-                )}
-                <p className="pt-1 text-[11px] text-[#5f6368]">
-                  <span className="pointer-coarse:hidden">Click to open</span>
-                  <span className="hidden pointer-coarse:inline">Tap again to open</span>
-                </p>
               </div>
-            </>
+              <div className="space-y-1 border-t border-white/10 pt-2">
+                {data.traits.map((t, n) =>
+                  t.values.length > 1 && it.traits[n] >= 0 ? (
+                    <div key={t.trait_type} className={`flex justify-between gap-3 ${view === "traits" && n === by ? "text-[#f4b728]" : ""}`}>
+                      <span className="text-[#9aa0a6]">{t.trait_type}</span>
+                      <span className="truncate text-right">
+                        {t.values[it.traits[n]]} <span className="num text-[#9aa0a6]">{((traitCounts[n][it.traits[n]] / items.length) * 100).toFixed(1)}%</span>
+                      </span>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+              <p className="text-[11px] text-[#5f6368]">
+                <span className="pointer-coarse:hidden">Click to open the item page</span>
+                <span className="hidden pointer-coarse:inline">Tap again to open the item page</span>
+              </p>
+            </div>
           )}
           {!it && grp && data && (
             <div className="space-y-1 p-3 text-xs">
@@ -445,7 +501,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
           {legend.map((l) => (
             <span key={l.label} className="inline-flex items-center gap-1.5">
               <span
-                className={`inline-block size-3 ${l.ring ? "rounded-full border-2" : "rounded-sm"}`}
+                className={`inline-block size-3 ${l.ring ? (l.box ? "rounded-[2px] border-2" : "rounded-full border-2") : "rounded-sm"}`}
                 style={l.ring ? { borderColor: l.color } : { background: l.color }}
               />
               {l.label}

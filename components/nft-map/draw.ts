@@ -27,9 +27,10 @@ export interface Scene {
   round: boolean;
   groups: Group[];
   price: PriceAxes | null;
+  /** Listed under what their band sold for lately (outlined in the price view). */
   deals: Uint8Array | null;
-  /** 1 where the item matches the highlight; null when nothing is highlighted. */
-  match: Uint8Array | null;
+  /** Opacity of each item (highlighting dims the others); null: all opaque. */
+  alpha: Float32Array | null;
   atlas: HTMLImageElement | null;
   cell: number;
   cols: number;
@@ -80,76 +81,86 @@ function thumb(ctx: CanvasRenderingContext2D, sc: Scene, id: number, x: number, 
 
 function priceAxes(ctx: CanvasRenderingContext2D, p: PriceAxes, cam: Camera, w: number, h: number) {
   ctx.save();
-  ctx.font = "11px Inter, system-ui, sans-serif";
   ctx.lineWidth = 1;
   const [px0, py0] = toScreen(cam, w, h, 0, 0);
   const [px1, py1] = toScreen(cam, w, h, p.width, p.height);
-  // Horizontal price lines, labelled on the left edge of the plot (or of the screen).
+  // Column backgrounds: one per rarity band.
+  for (const c of p.columns) {
+    const [x0] = toScreen(cam, w, h, c.x0, 0);
+    const [x1] = toScreen(cam, w, h, c.x1, 0);
+    if (x1 < 0 || x0 > w) continue;
+    ctx.fillStyle = "rgba(255,255,255,0.03)";
+    ctx.beginPath();
+    ctx.roundRect(x0, py0 - 4, x1 - x0, py1 - py0 + 8, 6);
+    ctx.fill();
+  }
+  // Price lines across, labelled on the left.
+  ctx.font = "11px Inter, system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  const lx = Math.max(px0 - 8, 40);
+  const lx = Math.max(px0 - 8, 36);
   for (const t of p.yTicks) {
     const [, sy] = toScreen(cam, w, h, 0, p.y(t));
-    if (sy < 24 || sy > h - 24) continue;
+    if (sy < 30 || sy > h - 10) continue;
     ctx.strokeStyle = STAGE.grid;
     ctx.beginPath();
     ctx.moveTo(px0, Math.round(sy) + 0.5);
     ctx.lineTo(px1, Math.round(sy) + 0.5);
     ctx.stroke();
     ctx.fillStyle = STAGE.muted;
-    ctx.fillText(zecLabel(t).replace(" ZEC", ""), lx, sy);
+    ctx.fillText(`${t === p.yTicks[p.yTicks.length - 1] && t >= p.cap * 0.98 ? "≥ " : ""}${zecLabel(t).replace(" ZEC", "")}`, lx, sy);
   }
-  // Rarity band boundaries along the bottom.
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  const by = Math.min(py1 + 8, h - 30);
-  let lastX = -Infinity;
-  for (const r of p.xTicks) {
-    const [sx] = toScreen(cam, w, h, p.x(r), 0);
-    if (sx < 20 || sx > w - 10) continue;
-    ctx.strokeStyle = STAGE.grid;
-    ctx.beginPath();
-    ctx.moveTo(Math.round(sx) + 0.5, py0);
-    ctx.lineTo(Math.round(sx) + 0.5, py1);
-    ctx.stroke();
-    const label = `#${r.toLocaleString("en-US")}`;
-    if (sx - lastX < ctx.measureText(label).width + 10) continue;
-    ctx.fillStyle = STAGE.muted;
-    ctx.fillText(label, sx, by);
-    lastX = sx;
-  }
-  ctx.fillStyle = STAGE.faint;
-  ctx.textAlign = "left";
-  ctx.fillText("← rarest", Math.max(px0, 8), by + 15);
-  ctx.textAlign = "right";
-  ctx.fillText("Rarity rank (√ scale) · most common →", Math.min(px1, w - 8), by + 15);
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`Asking price, ZEC (log scale; above ${zecLabel(p.cap)} shown at the top)`, Math.max(px0 - 30, 8), Math.max(py0 - 12, 14));
-  // What each band sold for lately.
-  ctx.strokeStyle = STAGE.accent;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  ctx.textAlign = "center";
-  ctx.font = "600 11px Inter, system-ui, sans-serif";
-  for (const [x0, x1, y, v] of p.reference) {
-    const [sx0, sy] = toScreen(cam, w, h, x0, y);
-    const [sx1] = toScreen(cam, w, h, x1, y);
-    ctx.beginPath();
-    ctx.moveTo(sx0, sy);
-    ctx.lineTo(sx1, sy);
-    ctx.stroke();
-    if (sx1 - sx0 > 60) {
-      ctx.fillStyle = STAGE.accent;
-      ctx.fillText(zecLabel(v), (sx0 + sx1) / 2, sy - 6);
+  ctx.fillStyle = STAGE.faint;
+  ctx.fillText("ZEC", Math.max(lx - 22, 4), Math.max(py0 - 22, 12));
+  // Each band: its name and figures above, what it sold for as a line across.
+  for (const c of p.columns) {
+    const [x0, ty] = toScreen(cam, w, h, c.x0, 0);
+    const [x1] = toScreen(cam, w, h, c.x1, 0);
+    const cw = x1 - x0,
+      mid = (x0 + x1) / 2;
+    if (x1 < 0 || x0 > w) continue;
+    ctx.textAlign = "center";
+    const range = c.from === c.to ? `#${c.from.toLocaleString("en-US")}` : `#${c.from.toLocaleString("en-US")}–${c.to.toLocaleString("en-US")}`;
+    ctx.font = `600 ${cw > 70 ? 12 : 10}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = STAGE.text;
+    // Only what fits its column: neighbours' labels must not run into each other.
+    const room = cw + 4;
+    if (ctx.measureText(range).width <= room) ctx.fillText(range, mid, ty - 50);
+    // Figures under the name: listings, what the band sold for, deals.
+    ctx.font = "10px Inter, system-ui, sans-serif";
+    const lines: [string, string][] = [[`${c.listed.toLocaleString("en-US")} listed`, STAGE.muted]];
+    if (c.reference != null) lines.push([`sold ~${zecLabel(c.reference)}`, STAGE.accent]);
+    if (c.deals) lines.push([`${c.deals} deal${c.deals > 1 ? "s" : ""}`, STAGE.good]);
+    lines.forEach(([t, color], n) => {
+      if (ctx.measureText(t).width > room) return;
+      ctx.fillStyle = color;
+      ctx.fillText(t, mid, ty - 36 + n * 12);
+    });
+    if (c.reference != null) {
+      const [, ry] = toScreen(cam, w, h, 0, p.y(c.reference));
+      ctx.strokeStyle = STAGE.accent;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x0 - 3, ry);
+      ctx.lineTo(x1 + 3, ry);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
   }
   ctx.restore();
 }
 
-export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: Camera, sc: Scene, opts: { lens: boolean }) {
-  ctx.fillStyle = STAGE.bg;
-  ctx.fillRect(0, 0, w, h);
+/** Draws the map. With `overlay`, the thumbnails are left to the WebGL layer underneath: only
+ *  sharp pictures, marks, labels and the magnifier are drawn, on a transparent canvas. */
+export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: Camera, sc: Scene, opts: { lens: boolean; overlay?: boolean }) {
+  if (opts.overlay) ctx.clearRect(0, 0, w, h);
+  else {
+    ctx.fillStyle = STAGE.bg;
+    ctx.fillRect(0, 0, w, h);
+  }
   ctx.imageSmoothingEnabled = cam.k < sc.cell;
   ctx.imageSmoothingQuality = "medium";
 
@@ -170,7 +181,6 @@ export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: C
     ctx.stroke();
   }
 
-  const dim = 0.14;
   const deals: [number, number, number][] = [];
   const labels: [number, number, number, number][] = [];
   for (let i = 0; i < sc.items.length; i++) {
@@ -179,9 +189,15 @@ export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: C
     const size = s * cam.k;
     const [cx, cy] = toScreen(cam, w, h, sc.x[i], sc.y[i]);
     if (cx + size < 0 || cx - size > w || cy + size < 0 || cy - size > h) continue;
-    const on = !sc.match || sc.match[i];
-    ctx.globalAlpha = on ? 1 : dim;
-    thumb(ctx, sc, sc.items[i].id, cx - size / 2, cy - size / 2, size, sc.round && size >= 3);
+    const a = sc.alpha ? sc.alpha[i] : 1;
+    if (a <= 0.01) continue;
+    const on = a > 0.5;
+    ctx.globalAlpha = a;
+    if (!opts.overlay) thumb(ctx, sc, sc.items[i].id, cx - size / 2, cy - size / 2, size, sc.round && size >= 3);
+    else if (size >= 56) {
+      const hd = sc.hd.get(sc.items[i].id);
+      if (hd?.complete && hd.naturalWidth) thumb(ctx, sc, sc.items[i].id, cx - size / 2, cy - size / 2, size, sc.round);
+    }
     if (on && sc.deals?.[i]) deals.push([cx, cy, size]);
     if (on && sc.round && size >= 64) labels.push([i, cx, cy, size]);
   }
@@ -202,9 +218,13 @@ export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: C
     }
   }
 
-  ctx.lineWidth = 2;
+  // Deals: a tight green outline (the legend and each column's count say what it means).
+  ctx.lineWidth = Math.min(2, Math.max(1, cam.k * 0.12));
   ctx.strokeStyle = STAGE.good;
-  for (const [cx, cy, size] of deals) ctx.strokeRect(cx - size / 2 - 1.5, cy - size / 2 - 1.5, size + 3, size + 3);
+  for (const [cx, cy, size] of deals) {
+    const o = ctx.lineWidth / 2 + 0.5;
+    ctx.strokeRect(cx - size / 2 - o, cy - size / 2 - o, size + 2 * o, size + 2 * o);
+  }
 
   ctx.font = "600 11px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
@@ -229,7 +249,9 @@ export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: C
     const g = sc.groups[n];
     const r = g.r * cam.k;
     if (r < 34) continue;
-    const [sx, sy] = toScreen(cam, w, h, g.x, g.y);
+    // Low in the bubble: its middle holds the rarest (or highlighted) items.
+    const [sx, cy] = toScreen(cam, w, h, g.x, g.y);
+    const sy = cy + r * 0.62;
     if (sx < -100 || sx > w + 100 || sy < -30 || sy > h + 30) continue;
     const big = r > 80;
     const name = g.label;

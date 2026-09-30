@@ -3,7 +3,7 @@ import { STAGE } from "./draw";
 export interface Poster {
   title: string;
   subtitle: string;
-  legend: { color: string; label: string; ring?: boolean }[];
+  legend: { color: string; label: string; ring?: boolean; box?: boolean }[];
   /** Draws the map into a width × height area. */
   render: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
 }
@@ -53,7 +53,11 @@ export function poster(p: Poster): Promise<Blob | null> {
   ctx.font = "15px Inter, system-ui, sans-serif";
   let x = pad;
   for (const l of p.legend) {
-    if (l.ring) {
+    if (l.ring && l.box) {
+      ctx.strokeStyle = l.color;
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(x + 1, fy - 6, 12, 12);
+    } else if (l.ring) {
       ctx.strokeStyle = l.color;
       ctx.lineWidth = 2.5;
       ctx.beginPath();

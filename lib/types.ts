@@ -745,5 +745,5 @@ export interface CollectionMap {
   /** [id, rank, ask, bid, last, archived sales, archived volume, one value index per trait type (-1: none)]. */
   items: [number, number | null, number | null, number | null, number | null, number, number, number[]][];
   /** Thumbnails: item n at slot n - 1, `cols` per row, `cell` pixels each. */
-  atlas: { url: string; cell: number; cols: number };
+  atlas: { url: string; preview: string; cell: number; cols: number };
 }
