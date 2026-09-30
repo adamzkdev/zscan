@@ -732,3 +732,18 @@ export interface BridgeEvent {
   address_kind: "transparent" | "unified" | "sapling" | null;
   referral: string | null;
 }
+
+/** Every item of a marketplace-kept collection, compact, for the collection map. */
+export interface CollectionMap {
+  supply: number;
+  floor: number | null;
+  /** Rarity bands with their median sale of the last 7 days (null: too few sales). */
+  bands: { from_rank: number; to_rank: number; reference: number | null }[];
+  /** A listing this far under its band's reference is a deal (0.1 = 10%). */
+  deal_discount: number;
+  traits: { trait_type: string; values: string[] }[];
+  /** [id, rank, ask, bid, last, archived sales, archived volume, one value index per trait type (-1: none)]. */
+  items: [number, number | null, number | null, number | null, number | null, number, number, number[]][];
+  /** Thumbnails: item n at slot n - 1, `cols` per row, `cell` pixels each. */
+  atlas: { url: string; cell: number; cols: number };
+}

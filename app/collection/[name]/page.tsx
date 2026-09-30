@@ -6,6 +6,7 @@ import { Hash } from "@/components/Hash";
 import { InscriptionGrid } from "@/components/Inscription";
 import { Analytics, chip, Pager, TraitFilters, TraitTable, VenueItemCard } from "@/components/NftMarket";
 import { NftImage } from "@/components/NftImage";
+import { NftMap } from "@/components/nft-map/NftMap";
 import { Badges, KIND_NOTE, ProjectLinks } from "@/components/NftProject";
 import { NftSalesTable } from "@/components/NftSales";
 import { TimeAgo } from "@/components/TimeAgo";
@@ -45,7 +46,7 @@ const STATUSES: [string, string][] = [
 ];
 
 type Row = [ReactNode, ReactNode] | [ReactNode, ReactNode, string] | null;
-type Tab = "items" | "analytics" | "traits" | "sales" | "holders";
+type Tab = "items" | "analytics" | "traits" | "sales" | "map" | "holders";
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
@@ -89,6 +90,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
     ["analytics", "Analytics"],
     ...(venue && stats?.traits.length ? ([["traits", "Traits"]] as [Tab, string][]) : []),
     ...(o || c.venue_sales.length ? ([["sales", "Sales"]] as [Tab, string][]) : []),
+    ...(venue ? ([["map", "Map"]] as [Tab, string][]) : []),
     ...(o ? ([["holders", "Holders"]] as [Tab, string][]) : []),
   ];
   const tab: Tab = tabs.some(([t]) => t === sp.tab) ? (sp.tab as Tab) : "items";
@@ -273,6 +275,14 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
       </nav>
 
       {tab === "analytics" && (stats ? <Analytics c={c} s={stats} slug={c.slug} /> : <Card><Empty>Analytics unavailable right now.</Empty></Card>)}
+
+      {tab === "map" && (
+        <NftMap
+          slug={c.slug}
+          name={c.name}
+          initial={{ map: str(sp.map), order: str(sp.order), by: str(sp.by), size: str(sp.size), show: str(sp.show), match: str(sp.match) }}
+        />
+      )}
 
       {tab === "traits" && stats && traitType && (
         <TraitTable
