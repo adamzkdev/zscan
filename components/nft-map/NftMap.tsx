@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { int, zec } from "@/lib/format";
 import type { CollectionMap } from "@/lib/types";
-import { premiumColor, STAGE } from "./draw";
-import { type Hover, MapEngine } from "./engine";
+import { STAGE } from "./draw";
+import { MapEngine } from "./engine";
 import { dealFlags, decode, type Item, layout, type Order, type Show, type SizeBy, type View } from "./layouts";
 import { download, poster, shareFile, tweet } from "./share";
 
@@ -21,7 +21,7 @@ export interface MapParams {
 const VIEWS: [View, string][] = [
   ["mosaic", "Mosaic"],
   ["traits", "Trait bubbles"],
-  ["price", "Price × rarity"],
+  ["price", "Rarity"],
   ["sales", "Sales bubbles"],
 ];
 const ORDERS: [Order, string][] = [
@@ -47,7 +47,6 @@ const chip = (on: boolean) =>
   `rounded-md border px-2 py-0.5 ${on ? "border-link bg-link text-white" : "border-border text-text hover:text-link"}`;
 const pick = <T extends string>(list: [T, string][], v: string | undefined, fallback: T): T => (list.some(([k]) => k === v) ? (v as T) : fallback);
 export function NftMap({ slug, name, initial }: { slug: string; name: string; initial: MapParams }) {
-  const router = useRouter();
   const [data, setData] = useState<CollectionMap | null>(null);
   const [failed, setFailed] = useState(false);
   // The half-size atlas arrives first (a quarter of the weight), then the sharp one replaces it.
@@ -60,7 +59,8 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   const [match, setMatch] = useState(initial.match ?? "");
   const [find, setFind] = useState("");
   const [note, setNote] = useState("");
-  const [hover, setHover] = useState<Hover>({ i: -1, group: -1, pinned: false });
+  // The clicked item, detailed in the side panel.
+  const [selected, setSelected] = useState(-1);
   const [busy, setBusy] = useState(false);
   // The mosaic takes the frame's shape; rounded so small resizes don't reshuffle it.
   const [aspect, setAspect] = useState(1.6);
@@ -68,9 +68,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const under = useRef<HTMLCanvasElement>(null);
-  const card = useRef<HTMLDivElement>(null);
   const engine = useRef<MapEngine | null>(null);
-  const openItem = useRef<(i: number) => void>(() => {});
   // An item searched for while the view hid it, found once the mosaic is laid out.
   const pendingFind = useRef(-1);
 
@@ -101,10 +99,9 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   }, [slug]);
 
   useEffect(() => {
-    const e = new MapEngine(canvas.current!, under.current!, card.current!, {
+    const e = new MapEngine(canvas.current!, under.current!, {
       imageUrl: (id) => `/v1/collections/${encodeURIComponent(slug)}/items/${id}/image`,
-      onHover: setHover,
-      onOpen: (i) => openItem.current(i),
+      onSelect: setSelected,
     });
     engine.current = e;
     const ro = new ResizeObserver(([entry]) => {
@@ -120,9 +117,6 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   }, [slug]);
 
   const items: Item[] = useMemo(() => (data ? decode(data) : []), [data]);
-  useEffect(() => {
-    openItem.current = (i) => router.push(`/collection/${encodeURIComponent(slug)}/item/${items[i].id}`);
-  }, [router, slug, items]);
 
   const types = useMemo(() => (data?.traits ?? []).map((t, n) => [n, t] as const).filter(([, t]) => t.values.length > 1), [data]);
   // By default, the trait whose number of values makes the most readable set of bubbles.
@@ -188,10 +182,6 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
       pendingFind.current = -1;
     }
   }, [lay]);
-  // The card's height is only known once its new content rendered.
-  useLayoutEffect(() => {
-    if (hover.i >= 0 || hover.group >= 0) engine.current?.placeCard();
-  }, [hover]);
 
   const onFind = (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,10 +277,9 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
     }
   };
 
-  // ---- Hover card ---------------------------------------------------------------------------
-  const it = hover.i >= 0 ? items[hover.i] : null;
+  // ---- Side panel ---------------------------------------------------------------------------
+  const it = selected >= 0 ? items[selected] : null;
   const ref = it?.rank != null ? (data?.bands.find((b) => it.rank! >= b.from_rank && it.rank! <= b.to_rank)?.reference ?? null) : null;
-  const grp = hover.group >= 0 && lay ? lay.groups[hover.group] : null;
 
   if (failed)
     return (
@@ -406,20 +395,17 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
         {!lay && <div className="absolute inset-0 flex items-center justify-center text-sm text-[#9aa0a6]">Loading every item…</div>}
         {lay && !atlas && <div className="absolute left-3 top-3 rounded bg-black/60 px-2 py-1 text-xs text-[#9aa0a6]">Loading pictures…</div>}
 
-        <div
-          ref={card}
-          className={`pointer-events-none absolute left-0 top-0 w-72 rounded-lg border border-white/10 bg-[#141518]/95 text-[#e8eaed] shadow-2xl backdrop-blur transition-opacity ${it || grp ? "opacity-100" : "opacity-0"}`}
-        >
-          {it && data && (
+        {it && data && (
+          <aside className="absolute inset-x-3 top-3 max-h-[calc(100%-7.5rem)] overflow-y-auto rounded-lg border border-white/10 bg-[#141518]/95 text-[#e8eaed] shadow-2xl backdrop-blur sm:left-auto sm:w-72">
             <div className="space-y-2.5 p-3 text-xs">
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`/v1/collections/${encodeURIComponent(slug)}/items/${it.id}/image`}
                   alt=""
                   className="size-16 shrink-0 rounded-md bg-black [image-rendering:pixelated]"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">
                     {name} #{it.id}
                   </p>
@@ -429,6 +415,9 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
                     </p>
                   )}
                 </div>
+                <button type="button" aria-label="Close" onClick={() => engine.current?.select(-1)} className="-mr-1 -mt-1 rounded px-1.5 text-base leading-6 text-[#9aa0a6] hover:bg-white/10 hover:text-white">
+                  ×
+                </button>
               </div>
               <div className="rounded-md bg-white/5 px-2.5 py-2">
                 <div className="flex items-baseline justify-between gap-2">
@@ -436,7 +425,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
                   <span className="num text-sm font-semibold">{it.ask != null ? `${zec(it.ask, 4)} ZEC` : "Not listed"}</span>
                 </div>
                 {it.ask != null && ref != null && (
-                  <p className={deals[hover.i] ? "text-[#2fbf9c]" : "text-[#9aa0a6]"}>
+                  <p className={deals[selected] ? "text-[#2fbf9c]" : "text-[#9aa0a6]"}>
                     {it.ask <= ref ? `${Math.round((1 - it.ask / ref) * 100)}% below` : `${Math.round((it.ask / ref - 1) * 100)}% above`} what its rarity band sold for this week ({zec(ref, 3)} ZEC)
                   </p>
                 )}
@@ -459,26 +448,15 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
                   ) : null,
                 )}
               </div>
-              <p className="text-[11px] text-[#5f6368]">
-                <span className="pointer-coarse:hidden">Click to open the item page</span>
-                <span className="hidden pointer-coarse:inline">Tap again to open the item page</span>
-              </p>
+              <Link
+                href={`/collection/${encodeURIComponent(slug)}/item/${it.id}`}
+                className="block rounded-md bg-[#4ea8de] px-3 py-1.5 text-center text-xs font-medium text-white hover:bg-[#3b95cb]"
+              >
+                Click to open the item →
+              </Link>
             </div>
-          )}
-          {!it && grp && data && (
-            <div className="space-y-1 p-3 text-xs">
-              <p className="text-[11px] uppercase tracking-wide text-[#9aa0a6]">{byLabel}</p>
-              <p className="text-sm font-semibold">{grp.label}</p>
-              <Line k="Items" v={`${int(grp.count)} · ${((grp.count / items.length) * 100).toFixed(1)}%`} />
-              <Line k="Listed" v={int(grp.listed)} />
-              <Line k="Floor" v={grp.floor != null ? `${zec(grp.floor, 4)} ZEC` : "None listed"} strong />
-              {grp.floor != null && data.floor ? (
-                <p style={{ color: premiumColor(grp, data.floor) }}>{(grp.floor / data.floor).toFixed(1)}× the collection floor</p>
-              ) : null}
-              <p className="pt-1 text-[11px] text-[#5f6368]">Click to zoom in</p>
-            </div>
-          )}
-        </div>
+          </aside>
+        )}
 
         <div className="absolute bottom-3 right-3 flex flex-col overflow-hidden rounded-md border border-white/10 bg-black/60 text-[#e8eaed]">
           <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => engine.current?.zoomBy(1.6)} className="size-8 text-base hover:bg-white/10">
@@ -511,8 +489,8 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
         <span>
           {note || (
             <>
-              <span className="pointer-coarse:hidden">Scroll to zoom, drag to move, hover for details.</span>
-              <span className="hidden pointer-coarse:inline">Pinch to zoom, drag to move, tap for details.</span>
+              <span className="pointer-coarse:hidden">Scroll to zoom, drag to move, click an item for details.</span>
+              <span className="hidden pointer-coarse:inline">Pinch to zoom, drag to move, tap an item for details.</span>
             </>
           )}
         </span>

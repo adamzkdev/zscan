@@ -8,13 +8,6 @@ const FADE_MS = 450;
 const DIM = 0.13;
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
-export interface Hover {
-  i: number;
-  group: number;
-  /** Chosen by a tap (touch), so it stays until the next tap. */
-  pinned: boolean;
-}
-
 function fit(l: Layout, w: number, h: number): Camera {
   const b = l.bounds;
   return { cx: (b.x0 + b.x1) / 2, cy: (b.y0 + b.y1) / 2, k: Math.min(w / (b.x1 - b.x0), h / (b.y1 - b.y0)) };
@@ -61,14 +54,15 @@ export class MapEngine {
   private hd = new Map<number, HTMLImageElement>();
   private focus = { i: -1, t0: 0 };
   private raf = 0;
-  private hover: Hover = { i: -1, group: -1, pinned: false };
+  /** Under the pointer (outlined), and clicked (outlined, details in the side panel). */
+  private hover = { i: -1, group: -1 };
+  private selected = -1;
   private pointers = new Map<number, { x: number; y: number }>();
   private drag = { moved: 0, pinch: false };
-  private last = { x: 0, y: 0 };
   private ro: ResizeObserver;
   private alpha: Float32Array | null = null;
   private fade: { from: Float32Array; to: Float32Array; t0: number } | null = null;
-  private scene: Omit<Scene, "x" | "y" | "s" | "round" | "groups" | "price" | "hover" | "hoverGroup" | "focus" | "pulse" | "hd" | "alpha"> = {
+  private scene: Omit<Scene, "x" | "y" | "s" | "round" | "groups" | "price" | "hover" | "hoverGroup" | "selected" | "focus" | "pulse" | "hd" | "alpha"> = {
     items: [],
     deals: null,
     atlas: null,
@@ -84,8 +78,7 @@ export class MapEngine {
   constructor(
     private canvas: HTMLCanvasElement,
     under: HTMLCanvasElement,
-    private card: HTMLElement,
-    private opts: { imageUrl: (id: number) => string; onHover: (h: Hover) => void; onOpen: (i: number) => void },
+    private opts: { imageUrl: (id: number) => string; onSelect: (i: number) => void },
   ) {
     this.sprites = new SpriteLayer(under, STAGE.bg);
     this.ro = new ResizeObserver(() => this.resize());
@@ -151,7 +144,17 @@ export class MapEngine {
       this.anim = { from: { x: p.x.slice(), y: p.y.slice(), s: p.s.slice() }, t0: performance.now() };
       this.camAnim = { from: { ...this.cam }, to: target, t0: performance.now() };
     }
-    this.setHover({ i: -1, group: -1, pinned: false });
+    this.hover = { i: -1, group: -1 };
+    // A selection the new view hides is let go.
+    if (this.selected >= 0 && !l.s[this.selected]) this.select(-1);
+    this.invalidate();
+  }
+
+  /** Selects an item (-1: none): outlined on the map, details in the side panel. */
+  select(i: number) {
+    if (i === this.selected) return;
+    this.selected = i;
+    this.opts.onSelect(i);
     this.invalidate();
   }
 
@@ -163,7 +166,7 @@ export class MapEngine {
     if (this.lay) this.flyTo(fit(this.lay, this.w, this.h));
   }
 
-  /** Flies to an item, pulses it and shows its card. False when the current view hides it. */
+  /** Flies to an item, pulses and selects it. False when the current view hides it. */
   goTo(i: number) {
     const l = this.lay;
     if (!l || !l.s[i]) return false;
@@ -172,8 +175,7 @@ export class MapEngine {
     setTimeout(() => {
       this.flyTo({ cx: l.x[i], cy: l.y[i], k: Math.min(Math.max(90 / s, this.cam.k), Math.min(this.w, this.h) / (s * 3)) });
       this.focus = { i, t0: performance.now() + ANIM_MS };
-      this.last = { x: this.w / 2, y: this.h / 2 };
-      this.setHover({ i, group: -1, pinned: true });
+      this.select(i);
     }, delay);
     return true;
   }
@@ -182,18 +184,7 @@ export class MapEngine {
   renderTo(ctx: CanvasRenderingContext2D, w: number, h: number) {
     if (!this.lay || !this.pos) return;
     const k = this.cam.k * Math.min(w / this.w, h / this.h);
-    draw(ctx, w, h, { ...this.cam, k }, { ...this.sceneFor(this.lay), hover: -1, hoverGroup: -1, focus: -1, pulse: 0 }, { lens: false });
-  }
-
-  /** Places the card beside the pointer, inside the frame. */
-  placeCard() {
-    const el = this.card;
-    const { x: sx, y: sy } = this.last;
-    const cw = el.offsetWidth || 240,
-      ch = el.offsetHeight || 200;
-    const x = sx + 24 + cw > this.w ? sx - 24 - cw : sx + 24;
-    const y = Math.min(Math.max(8, sy - ch / 2), this.h - ch - 8);
-    el.style.transform = `translate(${Math.max(8, x)}px, ${Math.max(8, y)}px)`;
+    draw(ctx, w, h, { ...this.cam, k }, { ...this.sceneFor(this.lay), hover: -1, hoverGroup: -1, selected: -1, focus: -1, pulse: 0 });
   }
 
   // ---- internals ----------------------------------------------------------------------------
@@ -213,15 +204,16 @@ export class MapEngine {
       hd: this.hd,
       hover: this.hover.i,
       hoverGroup: this.hover.group,
+      selected: this.selected,
       focus: -1,
       pulse: 0,
     };
   }
 
-  private setHover(h: Hover) {
-    if (h.i === this.hover.i && h.group === this.hover.group && h.pinned === this.hover.pinned) return;
+  private setHover(h: { i: number; group: number }) {
+    if (h.i === this.hover.i && h.group === this.hover.group) return;
     this.hover = h;
-    this.opts.onHover(h);
+    this.canvas.style.cursor = h.i >= 0 ? "pointer" : h.group >= 0 ? "zoom-in" : "grab";
     this.invalidate();
   }
 
@@ -298,7 +290,7 @@ export class MapEngine {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const gl = this.sprites.ok;
     if (gl) this.sprites.draw(this.w, this.h, this.cam, p.x, p.y, p.s, this.alpha, l.round);
-    draw(ctx, this.w, this.h, this.cam, sc, { lens: !this.anim && sc.hover >= 0, overlay: gl });
+    draw(ctx, this.w, this.h, this.cam, sc, { overlay: gl });
     if (!this.anim) this.loadSharp(sc);
     if (again) this.raf = requestAnimationFrame(this.frame);
   };
@@ -316,7 +308,6 @@ export class MapEngine {
       if (this.hd.size > 400) this.hd.delete(this.hd.keys().next().value!);
       return true;
     };
-    if (sc.hover >= 0) want(sc.hover);
     let wanted = 0;
     for (let i = 0; i < p.x.length && wanted < 36; i++) {
       const s = p.s[i] * this.cam.k;
@@ -394,11 +385,8 @@ export class MapEngine {
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.drag.moved > 4 || this.drag.pinch) return;
     }
-    if (e.pointerType === "touch" || this.hover.pinned) return;
-    this.last = { x: sx, y: sy };
-    this.setHover({ ...this.probe(sx, sy), pinned: false });
-    this.placeCard();
-    this.canvas.style.cursor = this.hover.i >= 0 ? "pointer" : this.hover.group >= 0 ? "zoom-in" : "grab";
+    if (e.pointerType === "touch") return;
+    this.setHover(this.probe(sx, sy));
   };
 
   private onUp = (e: PointerEvent) => {
@@ -406,20 +394,11 @@ export class MapEngine {
     if (this.drag.moved > 4 || this.drag.pinch) return;
     const [sx, sy] = this.local(e);
     const h = this.probe(sx, sy);
-    this.last = { x: sx, y: sy };
-    if (h.i >= 0) {
-      // Touch: the first tap shows the card, the second opens the item.
-      if (e.pointerType !== "touch" || (this.hover.pinned && this.hover.i === h.i)) {
-        this.opts.onOpen(h.i);
-        return;
-      }
-      this.setHover({ ...h, pinned: true });
-      this.placeCard();
-    } else if (h.group >= 0 && this.lay) {
+    if (h.i >= 0) this.select(h.i === this.selected ? -1 : h.i);
+    else if (h.group >= 0 && this.lay) {
       const g = this.lay.groups[h.group];
       this.flyTo({ cx: g.x, cy: g.y, k: Math.min(this.w, this.h) / (g.r * 2.3) });
-      this.setHover({ i: -1, group: -1, pinned: false });
-    } else this.setHover({ i: -1, group: -1, pinned: false });
+    } else this.select(-1);
   };
 
   private onCancel = (e: PointerEvent) => {
@@ -427,7 +406,7 @@ export class MapEngine {
   };
 
   private onLeave = () => {
-    if (!this.hover.pinned) this.setHover({ i: -1, group: -1, pinned: false });
+    this.setHover({ i: -1, group: -1 });
   };
 }
 

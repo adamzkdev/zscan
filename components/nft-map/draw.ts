@@ -40,6 +40,7 @@ export interface Scene {
   sizeBy: "last" | "volume";
   hover: number;
   hoverGroup: number;
+  selected: number;
   focus: number;
   /** 0 → 1 while a found item pulses. */
   pulse: number;
@@ -54,7 +55,7 @@ export const zecLabel = (zat: number) => {
 };
 
 /** Trait floor over collection floor: how much the value is worth above the cheapest item. */
-export function premiumColor(g: Group, floor: number | null) {
+function premiumColor(g: Group, floor: number | null) {
   if (g.floor == null || floor == null) return STAGE.faint;
   const r = g.floor / floor;
   return r >= 4 ? STAGE.accent : r >= 1.5 ? STAGE.link : "rgba(255,255,255,0.28)";
@@ -127,17 +128,11 @@ function priceAxes(ctx: CanvasRenderingContext2D, p: PriceAxes, cam: Camera, w: 
     ctx.fillStyle = STAGE.text;
     // Only what fits its column: neighbours' labels must not run into each other.
     const room = cw + 4;
-    if (ctx.measureText(range).width <= room) ctx.fillText(range, mid, ty - 50);
-    // Figures under the name: listings, what the band sold for, deals.
+    if (ctx.measureText(range).width <= room) ctx.fillText(range, mid, ty - 26);
     ctx.font = "10px Inter, system-ui, sans-serif";
-    const lines: [string, string][] = [[`${c.listed.toLocaleString("en-US")} listed`, STAGE.muted]];
-    if (c.reference != null) lines.push([`sold ~${zecLabel(c.reference)}`, STAGE.accent]);
-    if (c.deals) lines.push([`${c.deals} deal${c.deals > 1 ? "s" : ""}`, STAGE.good]);
-    lines.forEach(([t, color], n) => {
-      if (ctx.measureText(t).width > room) return;
-      ctx.fillStyle = color;
-      ctx.fillText(t, mid, ty - 36 + n * 12);
-    });
+    ctx.fillStyle = STAGE.muted;
+    const sub = `${c.listed.toLocaleString("en-US")} listed`;
+    if (ctx.measureText(sub).width <= room) ctx.fillText(sub, mid, ty - 12);
     if (c.reference != null) {
       const [, ry] = toScreen(cam, w, h, 0, p.y(c.reference));
       ctx.strokeStyle = STAGE.accent;
@@ -155,7 +150,7 @@ function priceAxes(ctx: CanvasRenderingContext2D, p: PriceAxes, cam: Camera, w: 
 
 /** Draws the map. With `overlay`, the thumbnails are left to the WebGL layer underneath: only
  *  sharp pictures, marks, labels and the magnifier are drawn, on a transparent canvas. */
-export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: Camera, sc: Scene, opts: { lens: boolean; overlay?: boolean }) {
+export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: Camera, sc: Scene, opts: { overlay?: boolean } = {}) {
   if (opts.overlay) ctx.clearRect(0, 0, w, h);
   else {
     ctx.fillStyle = STAGE.bg;
@@ -291,31 +286,19 @@ export function draw(ctx: CanvasRenderingContext2D, w: number, h: number, cam: C
     ctx.globalAlpha = 1;
   }
 
-  // The magnifier: the item under the pointer, three times larger.
-  if (opts.lens && sc.hover >= 0 && sc.s[sc.hover]) {
-    const i = sc.hover;
+  // The item under the pointer, and the selected one.
+  const outline = (i: number, color: string, width: number) => {
+    if (i < 0 || !sc.s[i]) return;
     const [cx, cy] = toScreen(cam, w, h, sc.x[i], sc.y[i]);
-    const size = Math.min(Math.max(sc.s[i] * cam.k * 3, 84), 200);
-    const x = cx - size / 2,
-      y = cy - size / 2;
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.6)";
-    ctx.shadowBlur = 24;
-    ctx.fillStyle = "#000";
-    if (sc.round) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
-      ctx.fill();
-    } else ctx.fillRect(x, y, size, size);
-    ctx.restore();
-    ctx.imageSmoothingEnabled = false;
-    thumb(ctx, sc, sc.items[i].id, x, y, size, sc.round);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#fff";
-    if (sc.round) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
-      ctx.stroke();
-    } else ctx.strokeRect(x - 1, y - 1, size + 2, size + 2);
-  }
+    const size = Math.max(sc.s[i] * cam.k, 6);
+    const o = width / 2 + 1;
+    ctx.lineWidth = width;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    if (sc.round) ctx.arc(cx, cy, size / 2 + o, 0, Math.PI * 2);
+    else ctx.rect(cx - size / 2 - o, cy - size / 2 - o, size + 2 * o, size + 2 * o);
+    ctx.stroke();
+  };
+  if (sc.hover !== sc.selected) outline(sc.hover, "rgba(255,255,255,0.9)", 1.5);
+  outline(sc.selected, STAGE.accent, 2.5);
 }

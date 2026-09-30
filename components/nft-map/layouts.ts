@@ -388,7 +388,7 @@ function price(items: Item[], m: CollectionMap, deals: Uint8Array): Layout {
     }
   const width = x - GAP_X;
   l.price = { width, height: H, y, yTicks, cap, columns };
-  l.bounds = { x0: -Math.max(10, width * 0.06), y0: -26, x1: width + 2, y1: H + 6 };
+  l.bounds = { x0: -Math.max(10, width * 0.06), y0: -16, x1: width + 2, y1: H + 6 };
   return l;
 }
 
