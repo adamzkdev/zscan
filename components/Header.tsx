@@ -114,7 +114,7 @@ export function Header({
                   <button
                     type="button"
                     aria-haspopup="menu"
-                    className="flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-2 text-text group-hover:text-link group-focus-within:text-link"
+                    className="flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-2 text-text group-hover:text-link group-has-[:focus-visible]:text-link"
                   >
                     {m.label}
                     <svg
@@ -133,17 +133,17 @@ export function Header({
                     </svg>
                   </button>
                   <div
-                    className={`invisible absolute right-0 top-full z-50 translate-y-1 pt-2 opacity-0 transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 ${m.groups ? "w-[860px]" : "w-56"}`}
+                    className={`invisible absolute right-0 top-full z-50 pt-1 group-hover:visible group-has-[:focus-visible]:visible ${m.groups ? "w-[860px]" : "w-56"}`}
                   >
                     <div
                       role="menu"
-                      className={`overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-xl ${m.groups ? "grid grid-cols-4 gap-1 p-3" : ""}`}
+                      className={`overflow-hidden rounded-b-md border border-border bg-surface py-1.5 shadow-xl ${m.groups ? "grid grid-cols-4 gap-1 p-3" : ""}`}
                       style={{ borderTop: "3px solid var(--link)" }}
                     >
                       {(m.groups ?? [{ title: "", items: m.items ?? [] }]).map((g) => (
                         <ul key={g.title} role="none">
                           {g.title && (
-                            <li role="none" className="px-3 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-faint">
+                            <li role="none" className="px-4 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-faint">
                               {g.title}
                             </li>
                           )}
@@ -154,7 +154,7 @@ export function Header({
                               </span>
                             );
                             const cls =
-                              "group/item block rounded-lg px-3 py-2 hover:bg-surface-2";
+                              "group/item block px-4 py-2 hover:bg-surface-2";
                             return (
                               <li key={i.href} role="none">
                                 {i.external ? (
