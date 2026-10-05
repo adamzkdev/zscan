@@ -14,7 +14,7 @@ export const AI_URL = process.env.NEXT_PUBLIC_AI_URL ?? "https://ai.zscan.cash";
 export const STATS_URL = (process.env.NEXT_PUBLIC_STATS_URL ?? "https://stats.zscan.cash").replace(/\/$/, "");
 
 /// ZScan Street: the mempool and blocks drawn live, today vs NU7. Inlined at build time.
-export const STREET_URL = (process.env.NEXT_PUBLIC_STREET_URL ?? "https://street.zscan.cash").replace(/\/$/, "");
+export const STREET_URL = (process.env.NEXT_PUBLIC_STREET_URL ?? "https://zstreet.cash").replace(/\/$/, "");
 
 /// The account console (API keys, watchlist, alerts). Inlined at build time.
 export const CONSOLE_URL = (process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://console.zscan.cash").replace(/\/$/, "");
@@ -69,7 +69,7 @@ export const NAV: NavMenu[] = [
         title: "Resources",
         items: [
           { href: STATS_URL, label: "Stats", external: true },
-          { href: STREET_URL, label: "Live Street (NU7)", external: true },
+          { href: STREET_URL, label: "ZStreet · live city", external: true },
           { href: "/brand", label: "Media Kit" },
           { href: "/status", label: "Status" },
         ],
