@@ -14,6 +14,7 @@ import { apiOrNull } from "@/lib/api";
 import { chainContext } from "@/lib/chain";
 import { FINAL_CONFIRMATIONS } from "@/lib/estimate";
 import { bytes, int, short, utc, zec } from "@/lib/format";
+import { STREET_URL } from "@/lib/nav";
 import type { Action, TxDetail } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/tx/[txid]">): Promise<Metadata> {
@@ -72,7 +73,16 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
       <Card pad={false}>
         <Rows
           rows={[
-            ["Transaction Hash", <span key="h" className="inline-flex items-center gap-1.5 break-all font-mono">{t.txid}<CopyButton value={t.txid} /></span>, "A unique identifier generated whenever a transaction is executed."],
+            [
+              "Transaction Hash",
+              <span key="h" className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="inline-flex items-center gap-1.5 break-all font-mono">{t.txid}<CopyButton value={t.txid} /></span>
+                <a href={`${STREET_URL}/?tx=${t.txid}`} target="_blank" rel="noopener" className="whitespace-nowrap text-xs text-link hover:text-link-hover">
+                  Watch it in ZStreet ↗
+                </a>
+              </span>,
+              "A unique identifier generated whenever a transaction is executed.",
+            ],
             [
               "Status",
               t.status === "mined" ? <Pill key="s" tone="good">✓ Success</Pill> : <Pill key="s" tone="warn">Pending</Pill>,
