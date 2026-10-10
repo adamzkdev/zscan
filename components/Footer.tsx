@@ -36,7 +36,12 @@ export function Footer() {
           </ul>
         </div>
         <div className="flex items-center justify-between border-t border-border py-4 text-xs text-muted">
-          <span>ZScan © 2026 · Built for the Zcash community</span>
+          <span>
+            ZScan © 2026 · Powered by{" "}
+            <a href="https://zlab.cash" className="font-medium text-text hover:text-link">
+              ZLab
+            </a>
+          </span>
           <a href="#" className="hover:text-link">
             ↑ Back to top
           </a>
