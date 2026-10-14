@@ -6,6 +6,7 @@ import { Hash } from "@/components/Hash";
 import { InscriptionGrid } from "@/components/Inscription";
 import { Analytics, chip, Pager, TraitFilters, TraitTable, VenueItemCard } from "@/components/NftMarket";
 import { NftImage } from "@/components/NftImage";
+import { Apparitions } from "@/components/nft-apparitions/Apparitions";
 import { NftMap } from "@/components/nft-map/NftMap";
 import { Badges, KIND_NOTE, ProjectLinks } from "@/components/NftProject";
 import { NftSalesTable } from "@/components/NftSales";
@@ -13,7 +14,7 @@ import { TimeAgo } from "@/components/TimeAgo";
 import { Card, Empty, PageTitle, Rows, Stat, tableHead, td, th, Zec } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";
 import { int, utc } from "@/lib/format";
-import type { CollectionDetail, CollectionStats } from "@/lib/types";
+import type { Apparitions as ApparitionsData, CollectionDetail, CollectionStats } from "@/lib/types";
 
 const PAGE = 48;
 
@@ -46,7 +47,7 @@ const STATUSES: [string, string][] = [
 ];
 
 type Row = [ReactNode, ReactNode] | [ReactNode, ReactNode, string] | null;
-type Tab = "items" | "analytics" | "traits" | "sales" | "map" | "holders";
+type Tab = "items" | "analytics" | "traits" | "sales" | "map" | "apparitions" | "holders";
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
@@ -72,7 +73,11 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
   if (status) qs.set("status", status);
   if (q) qs.set("q", q);
   const slugParam = encodeURIComponent(decodeURIComponent(name));
-  const [c, stats] = await Promise.all([load(name, qs.size ? `?${qs}` : ""), apiOrNull<CollectionStats>(`/v1/collections/${slugParam}/stats`)]);
+  const [c, stats, apparitions] = await Promise.all([
+    load(name, qs.size ? `?${qs}` : ""),
+    apiOrNull<CollectionStats>(`/v1/collections/${slugParam}/stats`),
+    apiOrNull<ApparitionsData>(`/v1/collections/${slugParam}/apparitions`),
+  ]);
   if (!c) notFound();
 
   const base = `/collection/${encodeURIComponent(c.slug)}`;
@@ -91,6 +96,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
     ...(venue && stats?.traits.length ? ([["traits", "Traits"]] as [Tab, string][]) : []),
     ...(o || c.venue_sales.length ? ([["sales", "Sales"]] as [Tab, string][]) : []),
     ...(venue ? ([["map", "Map"]] as [Tab, string][]) : []),
+    ...(apparitions?.apparitions.length ? ([["apparitions", "Apparitions"]] as [Tab, string][]) : []),
     ...(o ? ([["holders", "Holders"]] as [Tab, string][]) : []),
   ];
   const tab: Tab = tabs.some(([t]) => t === sp.tab) ? (sp.tab as Tab) : "items";
@@ -283,6 +289,8 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
           initial={{ map: str(sp.map), order: str(sp.order), by: str(sp.by), size: str(sp.size), show: str(sp.show), match: str(sp.match) }}
         />
       )}
+
+      {tab === "apparitions" && apparitions && <Apparitions slug={c.slug} name={c.name} data={apparitions} />}
 
       {tab === "traits" && stats && traitType && (
         <TraitTable

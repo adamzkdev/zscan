@@ -4,6 +4,8 @@ export interface Poster {
   title: string;
   subtitle: string;
   legend: { color: string; label: string; ring?: boolean; box?: boolean }[];
+  /** Under the brand; the map's by default. */
+  tagline?: string;
   /** Draws the map into a width × height area. */
   render: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
 }
@@ -44,7 +46,7 @@ export function poster(p: Poster): Promise<Blob | null> {
   ctx.fillText("ZScan", POSTER.width - pad, 50);
   ctx.fillStyle = STAGE.muted;
   ctx.font = "16px Inter, system-ui, sans-serif";
-  ctx.fillText("zscan.cash · Zcash NFT map", POSTER.width - pad, 76);
+  ctx.fillText(p.tagline ?? "zscan.cash · Zcash NFT map", POSTER.width - pad, 76);
 
   // Footer: legend, then source and date.
   const fy = POSTER.height - POSTER.footer / 2;

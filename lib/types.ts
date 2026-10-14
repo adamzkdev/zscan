@@ -747,3 +747,34 @@ export interface CollectionMap {
   /** Thumbnails: item n at slot n - 1, `cols` per row, `cell` pixels each. */
   atlas: { url: string; preview: string; cell: number; cols: number };
 }
+
+/** One Apparition: a treasury snark transformed after a holder purged 26 others. */
+export interface Apparition {
+  slot: number;
+  item: string;
+  name: string;
+  traits: { trait_type: string; value: string }[];
+  /** When it was revealed; its 26 snarks were purged in the same instant. */
+  unlocked_at: string | null;
+  ask: number | null;
+  last: number | null;
+}
+
+/** A snark purged to reveal an Apparition. */
+export interface PurgedItem {
+  item: string;
+  /** The Apparition it was purged for. */
+  slot: number;
+  rank: number | null;
+  traits: { trait_type: string; value: string }[];
+  /** Its last sale before the purge, zatoshis. */
+  last: number | null;
+}
+
+export interface Apparitions {
+  slots: number;
+  minted: number | null;
+  supply: number | null;
+  apparitions: Apparition[];
+  purged: PurgedItem[];
+}
