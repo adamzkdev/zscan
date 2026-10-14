@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { chip } from "@/components/NftMarket";
 import type { Apparition, PurgedItem } from "@/lib/types";
+import { TRAIT_STYLE } from "./shared";
 
 const TYPES = ["Lineage", "Skin", "Eyes", "Head"];
 /** Named values; the rest fold into "Other". */
@@ -66,13 +67,8 @@ export function Dna({ slug, apps, bySlot }: { slug: string; apps: Apparition[]; 
   };
 
   return (
-    <section className="card viz-dna p-4">
-      {/* Categorical slots 1–6 (light and dark steps, validated in order) and a neutral "Other". */}
-      <style>{`
-        .viz-dna { --dna-1:#2a78d6; --dna-2:#eb6834; --dna-3:#1baf7a; --dna-4:#eda100; --dna-5:#e87ba4; --dna-6:#008300; --dna-other:#a3a29b; }
-        @media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .viz-dna { --dna-1:#3987e5; --dna-2:#d95926; --dna-3:#199e70; --dna-4:#c98500; --dna-5:#d55181; --dna-6:#008300; --dna-other:#5f5e59; } }
-        :root[data-theme="dark"] .viz-dna { --dna-1:#3987e5; --dna-2:#d95926; --dna-3:#199e70; --dna-4:#c98500; --dna-5:#d55181; --dna-6:#008300; --dna-other:#5f5e59; }
-      `}</style>
+    <section className="card viz-traits p-4">
+      <style>{TRAIT_STYLE}</style>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold">What each Apparition is made of</h3>

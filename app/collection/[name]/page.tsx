@@ -290,7 +290,7 @@ export default async function CollectionPage(props: PageProps<"/collection/[name
         />
       )}
 
-      {tab === "apparitions" && apparitions && <Apparitions slug={c.slug} name={c.name} data={apparitions} />}
+      {tab === "apparitions" && apparitions && <Apparitions slug={c.slug} name={c.name} data={apparitions} initial={str(sp.av)} />}
 
       {tab === "traits" && stats && traitType && (
         <TraitTable
