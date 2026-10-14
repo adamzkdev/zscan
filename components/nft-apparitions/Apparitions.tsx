@@ -7,7 +7,10 @@ import { STAGE } from "@/components/nft-map/draw";
 import { Stat } from "@/components/ui";
 import { int, pct, zec } from "@/lib/format";
 import type { Apparitions as Data, PurgedItem } from "@/lib/types";
+import { Dna } from "./Dna";
 import { FusionStage, hhmm, type FusionCell, type Hit } from "./fusion";
+import { FusionHero } from "./FusionHero";
+import { Holes } from "./Holes";
 
 /** The collection map's atlas: item `n` at slot `n - 1`, 100 per row. */
 const ATLAS_COLS = 100;
@@ -212,6 +215,10 @@ export function Apparitions({ slug, name, data }: { slug: string; name: string; 
         />
       </div>
 
+      <FusionHero slug={slug} apps={apps} bySlot={bySlot} />
+
+      <Holes slug={slug} apps={apps} bySlot={bySlot} />
+
       <section className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
           <div>
@@ -302,6 +309,8 @@ export function Apparitions({ slug, name, data }: { slug: string; name: string; 
         <Timeline cells={cells} names={apps.map((a) => a.name)} />
         <RankHistogram ranks={ranks} minted={minted} median={purgedMedian} commonHalf={commonHalf} />
       </div>
+
+      <Dna slug={slug} apps={apps} bySlot={bySlot} />
 
       <details className="card group">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium">
