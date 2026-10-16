@@ -6,7 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       { userAgent: BLOCKED_BOTS, disallow: "/" },
       // Search engines and AI assistants: pages yes, raw API and CSV exports no.
-      { userAgent: "*", allow: "/", disallow: ["/v1/", "/api-docs"] },
+      // Filtered/sorted views (trait combinations are endless) and raw API stay out of crawls.
+      { userAgent: "*", allow: "/", disallow: ["/v1/", "/api-docs", "/*?*traits=", "/*?*sort=", "/*?*tab="] },
     ],
     host: "https://zscan.cash",
   };
