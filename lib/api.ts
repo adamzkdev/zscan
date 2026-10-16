@@ -31,14 +31,37 @@ async function fetchApi(url: string): Promise<Response> {
   }
 }
 
-/** Server-side fetch from the ZScan API. Always fresh: explorer data changes every block. */
-export async function api<T>(path: string): Promise<T> {
+/** Data every page asks for and that doesn't change per block: kept this many ms per path, so
+ * crawlers walking thousands of pages don't turn each render into the same API calls. */
+const SHARED: [RegExp, number][] = [
+  [/^\/v1\/(price|network)$/, 15_000],
+  [/^\/v1\/price\/history$/, 300_000],
+  [/^\/v1\/collections\/[\w-]+$/, 30_000],
+  [/^\/v1\/collections\/[\w-]+\/stats$/, 60_000],
+  [/^\/v1\/collections\/[\w-]+\/apparitions$/, 300_000],
+];
+const shared = new Map<string, { at: number; value: Promise<unknown> }>();
+
+async function load<T>(path: string): Promise<T> {
   const res = await fetchApi(`${BASE}${path}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body.error ?? "error", body.message ?? res.statusText);
   }
   return res.json() as Promise<T>;
+}
+
+/** Server-side fetch from the ZScan API. Fresh, except the shared paths above. */
+export async function api<T>(path: string): Promise<T> {
+  const ttl = SHARED.find(([re]) => re.test(path))?.[1];
+  if (!ttl) return load<T>(path);
+  const hit = shared.get(path);
+  if (hit && Date.now() - hit.at < ttl) return hit.value as Promise<T>;
+  // Concurrent renders share the one request in flight; a failure is not kept.
+  const value = load<T>(path);
+  shared.set(path, { at: Date.now(), value });
+  value.catch(() => shared.get(path)?.value === value && shared.delete(path));
+  return value;
 }
 
 /** Like `api`, but returns null on 404 / 400 so pages can render notFound or a message. */
