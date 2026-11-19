@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import { hashrate, usd } from "@/lib/format";
 import { NAV } from "@/lib/nav";
 import { HeaderSearch } from "./HeaderSearch";

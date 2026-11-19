@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import { AI_URL, STATS_URL } from "@/lib/nav";
 import { Logo } from "./Logo";
 

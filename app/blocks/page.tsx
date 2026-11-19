@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { BlocksTable } from "@/components/tables";
 import { Card, PageTitle } from "@/components/ui";
 import { api } from "@/lib/api";

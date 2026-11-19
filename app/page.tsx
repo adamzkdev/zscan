@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import type { ReactNode } from "react";
 import { AuditBadge } from "@/components/AuditBadge";
 import { CrossChainFeed } from "@/components/CrossChainFeed";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { notFound } from "next/navigation";
 import { CopyButton, Hash } from "@/components/Hash";
 import { contentUrl, InscriptionPreview, inscriptionName, StatePill } from "@/components/Inscription";

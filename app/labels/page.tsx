@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { Hash } from "@/components/Hash";
 import { Card, Empty, PageTitle, Pill, tableHead, td, th, Zec } from "@/components/ui";
 import { api } from "@/lib/api";

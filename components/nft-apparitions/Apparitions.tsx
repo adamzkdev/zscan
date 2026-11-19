@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { useEffect, useMemo, useState } from "react";
 import { Stat } from "@/components/ui";
 import { int, pct, zec } from "@/lib/format";

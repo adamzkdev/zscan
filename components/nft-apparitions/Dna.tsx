@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { useMemo, useState } from "react";
 import { chip } from "@/components/NftMarket";
 import type { Apparition, PurgedItem } from "@/lib/types";

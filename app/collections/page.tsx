@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { IndexingStarting } from "@/app/loading-state";
 import { chip } from "@/components/NftMarket";
 import { NftImage } from "@/components/NftImage";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { Sparkline } from "@/components/Sparkline";
 import { Card, Empty, PageTitle, Pill, Stat, tableHead, td, th } from "@/components/ui";
 import { apiOrNull } from "@/lib/api";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { useState } from "react";
 import { short } from "@/lib/format";
 import { useAddressesHidden } from "./PrivacyScreen";

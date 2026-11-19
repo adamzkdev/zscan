@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { MigrationFlowChart } from "@/components/charts/MigrationFlowChart";
 import { PoolHistoryChart } from "@/components/charts/PoolHistoryChart";
 import { TimeAgo } from "@/components/TimeAgo";

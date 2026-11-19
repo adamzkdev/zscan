@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import type { InscriptionMedia, InscriptionRow, InscriptionState } from "@/lib/types";
 import { NftImage } from "./NftImage";
 import { Pill } from "./ui";

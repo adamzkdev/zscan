@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { short } from "@/lib/format";
 import type { BlockSummary, TxRow } from "@/lib/types";
 import { CubeIcon, ShieldIcon, TxIcon } from "./icons";

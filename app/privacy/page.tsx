@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import type { ReactNode } from "react";
 import { Card, PageTitle } from "@/components/ui";
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { AuditBadge } from "@/components/AuditBadge";
 import { TimeAgo } from "@/components/TimeAgo";
 import { Card, Empty, PageTitle, Pill, tableHead, td, th } from "@/components/ui";

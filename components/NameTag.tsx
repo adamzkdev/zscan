@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import type { Tag } from "@/lib/types";
 
 /** Etherscan-style name tag; links to the protocol page and shows the label's source on hover. */

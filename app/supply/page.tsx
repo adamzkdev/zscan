@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { AuditBadge } from "@/components/AuditBadge";
 import { StackedDaily } from "@/components/charts/StackedDaily";
 import { Countdown, LiveSupply } from "@/components/LiveSupply";

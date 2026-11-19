@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { MinerShareChart } from "@/components/charts/MinerShareChart";
 import { TimeAgo } from "@/components/TimeAgo";
 import { Card, PageTitle, tableHead, td, th, Zec } from "@/components/ui";

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import { TOOL_REDIRECTS } from "./lib/tools/list";
 
 const nextConfig: NextConfig = {
+  // A self-contained server for our own box (ZSCAN_STANDALONE=1 next build → .next/standalone, see
+  // Dockerfile.prebuilt); the Cloudflare build (vinext) doesn't use it.
+  ...(process.env.ZSCAN_STANDALONE ? { output: "standalone" as const } : {}),
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },

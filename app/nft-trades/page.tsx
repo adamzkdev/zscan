@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { IndexingStarting } from "@/app/loading-state";
 import { Hash } from "@/components/Hash";
 import { imageUrl, inscriptionName } from "@/components/Inscription";

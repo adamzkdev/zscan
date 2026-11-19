@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { useState } from "react";
 import { blockQuantile, duration, paysConventional } from "@/lib/estimate";
 import { bytes, int, short } from "@/lib/format";

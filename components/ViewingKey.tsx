@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Hash } from "@/components/Hash";
 import { PoolIcon, type ShieldedPool } from "@/components/PoolIcon";

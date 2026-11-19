@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { PageTitle } from "@/components/ui";
 import { TOOL_PAGES } from "@/lib/tools/list";
 

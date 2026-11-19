@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { useEffect, useRef, useState } from "react";
 import { STAGE } from "@/components/nft-map/draw";
 import { int } from "@/lib/format";

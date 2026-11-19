@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import type { AuditSummary } from "@/lib/types";
 
 /** Public supply-audit status: green when every reconciliation matched to the zatoshi. */

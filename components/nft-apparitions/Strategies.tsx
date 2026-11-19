@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/lib/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chip } from "@/components/NftMarket";
 import { int, zec } from "@/lib/format";

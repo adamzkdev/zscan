@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { notFound } from "next/navigation";
 import { Hash } from "@/components/Hash";
 import { ClockIcon } from "@/components/icons";

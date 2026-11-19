@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { CopyButton } from "@/components/Hash";
 import { PoolIcon } from "@/components/PoolIcon";
 import { Card, PageTitle, Pill, tableHead, td, th } from "@/components/ui";

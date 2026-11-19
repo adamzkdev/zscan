@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import { bytes, short } from "@/lib/format";
 import type { BlockSummary, TxRow } from "@/lib/types";
 import { ArrowRightIcon, ShieldIcon } from "./icons";

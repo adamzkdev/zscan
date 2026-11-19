@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/lib/link";
 import { Card, Empty, PageTitle, Pill, Stat, tableHead, td, th } from "@/components/ui";
 import { int } from "@/lib/format";
 import { getZips, LIVE, STATUS_ORDER, statusTone, type Zip } from "@/lib/zips";

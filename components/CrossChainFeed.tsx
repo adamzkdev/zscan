@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/lib/link";
 import { short, usd, zec } from "@/lib/format";
 import { CHAIN_NAMES, chainLogo, coinLogo } from "@/lib/logos";
 import { STATS_URL } from "@/lib/nav";
