@@ -18,7 +18,7 @@ export function MigrationFlowChart({ daily }: { daily: Migration["daily"] }) {
           ]}
         />
       </div>
-      <div className="h-64">
+      <div className="amt-chart h-64">
         <ResponsiveContainer>
           <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
             <CartesianGrid {...GRID} />

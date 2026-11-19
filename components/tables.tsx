@@ -160,7 +160,7 @@ export function TxTable({ txs, showBlock = true }: { txs: TxRow[]; showBlock?: b
                     <Zec zat={v} />
                   )}
                 </td>
-                <td className={`${td} text-right text-muted`}>
+                <td className={`${td} amt text-right text-muted`}>
                   {t.fee == null ? "—" : (t.fee / 1e8).toLocaleString("en-US", { maximumFractionDigits: 8 })}
                 </td>
               </tr>

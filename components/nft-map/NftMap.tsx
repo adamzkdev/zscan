@@ -75,7 +75,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   useEffect(() => {
     let live = true;
     fetch(`/v1/collections/${encodeURIComponent(slug)}/map`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((r) => (r.ok ? r.json() as Promise<CollectionMap> : Promise.reject(r.status)))
       .then((m: CollectionMap) => {
         if (!live) return;
         setData(m);
@@ -422,7 +422,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
               <div className="rounded-md bg-white/5 px-2.5 py-2">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-[#9aa0a6]">Ask</span>
-                  <span className="num text-sm font-semibold">{it.ask != null ? `${zec(it.ask, 4)} ZEC` : "Not listed"}</span>
+                  <span className="num text-sm font-semibold">{it.ask != null ? <><span className="amt">{zec(it.ask, 4)}</span> ZEC</> : "Not listed"}</span>
                 </div>
                 {it.ask != null && ref != null && (
                   <p className={deals[selected] ? "text-[#2fbf9c]" : "text-[#9aa0a6]"}>
@@ -432,9 +432,9 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
                 {it.ask != null && data.floor != null && it.ask > data.floor && <p className="text-[#9aa0a6]">{(it.ask / data.floor).toFixed(1)}× the collection floor</p>}
               </div>
               <div className="space-y-1">
-                <Line k="Top bid" v={it.bid != null ? `${zec(it.bid, 4)} ZEC` : "—"} />
-                <Line k="Last sale" v={it.last != null ? `${zec(it.last, 4)} ZEC` : "Never sold"} />
-                {it.sales > 0 && <Line k="Sales on record" v={`${it.sales} · ${zec(it.volume, 2)} ZEC`} />}
+                <Line k="Top bid" v={it.bid != null ? <><span className="amt">{zec(it.bid, 4)}</span> ZEC</> : "—"} />
+                <Line k="Last sale" v={it.last != null ? <><span className="amt">{zec(it.last, 4)}</span> ZEC</> : "Never sold"} />
+                {it.sales > 0 && <Line k="Sales on record" v={<>{it.sales} · <span className="amt">{zec(it.volume, 2)}</span> ZEC</>} />}
               </div>
               <div className="space-y-1 border-t border-white/10 pt-2">
                 {data.traits.map((t, n) =>
@@ -499,7 +499,7 @@ export function NftMap({ slug, name, initial }: { slug: string; name: string; in
   );
 }
 
-function Line({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
+function Line({ k, v, strong }: { k: string; v: React.ReactNode; strong?: boolean }) {
   return (
     <div className="flex justify-between gap-3">
       <span className="text-[#9aa0a6]">{k}</span>

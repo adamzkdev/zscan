@@ -314,3 +314,18 @@ textarea.input {
   border-color: var(--border-strong);
   color: var(--text);
 }
+
+/* Privacy screen (header eye, Shift+H): blurs amounts, and addresses when chosen. Classes are set
+   on <html> before first paint (lib/privacy-screen.ts), so server-rendered values never flash. */
+html.hide-amounts .amt,
+html.hide-amounts.hide-addresses :is(.addr, a[href^="/address/"], a[href^="/shielded/"]),
+html.hide-amounts .amt-chart :is(.recharts-yAxis .recharts-cartesian-axis-tick-value, .recharts-tooltip-wrapper) {
+  filter: blur(0.32em);
+  user-select: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .amt,
+  .addr {
+    transition: filter 0.15s;
+  }
+}

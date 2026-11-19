@@ -46,7 +46,9 @@ async function load<T>(path: string): Promise<T> {
   const res = await fetchApi(`${BASE}${path}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.error ?? "error", body.message ?? res.statusText);
+    const code = body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : "error";
+    const message = body && typeof body === "object" && "message" in body && typeof body.message === "string" ? body.message : res.statusText;
+    throw new ApiError(res.status, code, message);
   }
   return res.json() as Promise<T>;
 }

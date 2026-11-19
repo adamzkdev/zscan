@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Logo } from "./Logo";
 import { NAV } from "@/lib/nav";
+import { PrivacySettingsList } from "./PrivacyScreen";
 import { Search } from "./Search";
 
 export function MobileMenu() {
@@ -94,6 +95,12 @@ export function MobileMenu() {
               ),
             )}
           </nav>
+          <section aria-labelledby="mobile-privacy" className="mt-4 border-t border-border pt-3">
+            <h2 id="mobile-privacy" className="pb-1 text-[11px] font-semibold uppercase tracking-wide text-faint">
+              Privacy screen
+            </h2>
+            <PrivacySettingsList />
+          </section>
         </div>,
         document.body,
       )}

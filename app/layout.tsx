@@ -5,17 +5,17 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { PriceProvider } from "@/components/price";
 import { THEME_SCRIPT } from "@/components/ThemeToggle";
+import { PLAUSIBLE_INIT } from "@/lib/analytics";
 import { api } from "@/lib/api";
+import { PRIVACY_SCRIPT } from "@/lib/privacy-screen";
 import type { Network, Price } from "@/lib/types";
 import "./globals.css";
 
 const roboto = Roboto({ variable: "--font-roboto", subsets: ["latin"], weight: ["400", "500", "700"] });
 const mono = JetBrains_Mono({ variable: "--font-mono-face", subsets: ["latin"] });
 
-// Plausible: cookieless page-view counts, no IPs or personal data stored.
+// Plausible: cookieless page-view counts. URLs are redacted before sending (lib/analytics.ts).
 const PLAUSIBLE_SRC = "https://plausible.io/js/pa--j0E3s2cLpxU91XeUYc26.js";
-const PLAUSIBLE_INIT =
-  "window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()";
 
 // Explorer data changes every block: render on each request.
 export const dynamic = "force-dynamic";
@@ -43,6 +43,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col" data-ws-url={process.env.PUBLIC_WS_URL ?? ""}>
         <Script id="theme" strategy="beforeInteractive">
           {THEME_SCRIPT}
+        </Script>
+        <Script id="privacy-screen" strategy="beforeInteractive">
+          {PRIVACY_SCRIPT}
         </Script>
         {!isTestnet && (
           <>

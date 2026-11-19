@@ -6,6 +6,7 @@ import { GaugeIcon } from "./icons";
 import { LiveRefresh } from "./LiveRefresh";
 import { Logo } from "./Logo";
 import { MobileMenu } from "./MobileMenu";
+import { PrivacyToggle } from "./PrivacyScreen";
 import { ThemeToggle } from "./ThemeToggle";
 import { ZecIcon } from "./ZecIcon";
 
@@ -77,6 +78,7 @@ export function Header({
                 {network === "testnet" ? "Testnet" : "Mainnet"} ⇄ {other.label}
               </a>
             )}
+            <PrivacyToggle />
             <ThemeToggle />
           </div>
         </div>

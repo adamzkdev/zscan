@@ -216,7 +216,7 @@ export function AddressTxTable({
                     <Zec zat={Math.abs(t.delta)} />
                   ) : (
                     <span
-                      className="num"
+                      className="num amt"
                       title={
                         historical
                           ? currency === "usd"

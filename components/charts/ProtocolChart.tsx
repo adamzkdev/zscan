@@ -29,7 +29,7 @@ export function ProtocolChart({ daily, flows = true }: { daily: ProtocolDay[]; f
           ))}
         </div>
       )}
-      <div className="h-64">
+      <div className="amt-chart h-64">
         <ResponsiveContainer>
           {view === "holdings" ? (
             <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>

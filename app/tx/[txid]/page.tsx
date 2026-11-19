@@ -7,6 +7,7 @@ import { InscriptionPreview, inscriptionName } from "@/components/Inscription";
 import { KindBadge } from "@/components/KindBadge";
 import { LiveConfirmations } from "@/components/LiveConfirmations";
 import { NameTag } from "@/components/NameTag";
+import { PrivacyCheckup } from "@/components/PrivacyCheckup";
 import { TimeAgo } from "@/components/TimeAgo";
 import { TxTracker } from "@/components/TxTracker";
 import { Card, PageTitle, Pill, Rows, Zec } from "@/components/ui";
@@ -15,6 +16,7 @@ import { chainContext } from "@/lib/chain";
 import { FINAL_CONFIRMATIONS } from "@/lib/estimate";
 import { bytes, int, short, utc, zec } from "@/lib/format";
 import { STREET_URL } from "@/lib/nav";
+import { checkupInput } from "@/lib/privacy-checkup";
 import type { Action, TxDetail } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/tx/[txid]">): Promise<Metadata> {
@@ -158,6 +160,8 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
         />
       </Card>
 
+      <PrivacyCheckup input={checkupInput(t)} />
+
       {(t.inputs.length > 0 || t.outputs.length > 0) && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card title={`Transparent Inputs (${t.inputs.length})`} pad={false}>
@@ -258,7 +262,8 @@ export default async function TxPage(props: PageProps<"/tx/[txid]">) {
         </section>
       )}
       <p className="flex items-center gap-1.5 text-xs text-muted">
-        <ArrowRightIcon size={12} /> Fee: {zec(t.fee)} ZEC · Transparent in {zec(t.transparent_in)} / out {zec(t.transparent_out)} ZEC
+        <ArrowRightIcon size={12} /> Fee: <span className="amt">{zec(t.fee)}</span> ZEC · Transparent in <span className="amt">{zec(t.transparent_in)}</span> / out{" "}
+        <span className="amt">{zec(t.transparent_out)}</span> ZEC
       </p>
     </div>
   );

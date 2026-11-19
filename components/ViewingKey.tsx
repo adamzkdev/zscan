@@ -418,7 +418,7 @@ export function ViewingKeyExplorer({
                       onClick={loadMemos}
                       disabled={memoState === "loading"}
                       className="rounded-md border border-border px-3 py-1 hover:bg-surface-2 disabled:opacity-60"
-                      title="Downloads the full transactions: ZScan's server sees which transactions are requested (it keeps no logs)."
+                      title="Downloads the full transactions: ZScan's server sees which transactions are requested (its logs keep no IP addresses and replace transaction IDs with placeholders)."
                     >
                       {memoState === "loading" ? "Loading memos…" : incoming ? "Load memos" : "Load memos & recipients"}
                     </button>

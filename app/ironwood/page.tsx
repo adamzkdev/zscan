@@ -43,10 +43,10 @@ export default async function IronwoodPage() {
           </div>
           <div className="text-right text-sm text-muted">
             <p>
-              <span className="num text-text">{zec(m.ironwood_now, 0)}</span> ZEC in Ironwood
+              <span className="num amt text-text">{zec(m.ironwood_now, 0)}</span> ZEC in Ironwood
             </p>
             <p>
-              <span className="num text-text">{zec(m.orchard_now, 0)}</span> ZEC left in Orchard
+              <span className="num amt text-text">{zec(m.orchard_now, 0)}</span> ZEC left in Orchard
             </p>
           </div>
         </div>
@@ -65,10 +65,10 @@ export default async function IronwoodPage() {
       </section>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Ironwood balance" value={`${zecCompact(m.ironwood_now)} ZEC`} accent="var(--ironwood-ink)" sub={`at block ${int(m.snapshot_height)}`} />
-        <Stat label="Orchard remaining" value={`${zecCompact(m.orchard_now)} ZEC`} sub={m.orchard_at_activation != null ? `of ${zecCompact(m.orchard_at_activation)} at activation` : "sealed pool"} />
-        <Stat label="Ironwood 24h" value={`${zecCompact(pools.change_24h.ironwood)} ZEC`} sub="net change" />
-        <Stat label="Orchard 24h" value={`${zecCompact(pools.change_24h.orchard)} ZEC`} sub="net change" />
+        <Stat label="Ironwood balance" value={<><span className="amt">{zecCompact(m.ironwood_now)}</span> ZEC</>} accent="var(--ironwood-ink)" sub={`at block ${int(m.snapshot_height)}`} />
+        <Stat label="Orchard remaining" value={<><span className="amt">{zecCompact(m.orchard_now)}</span> ZEC</>} sub={m.orchard_at_activation != null ? <>of <span className="amt">{zecCompact(m.orchard_at_activation)}</span> at activation</> : "sealed pool"} />
+        <Stat label="Ironwood 24h" value={<><span className="amt">{zecCompact(pools.change_24h.ironwood)}</span> ZEC</>} sub="net change" />
+        <Stat label="Orchard 24h" value={<><span className="amt">{zecCompact(pools.change_24h.orchard)}</span> ZEC</>} sub="net change" />
       </div>
 
       <Card title="Shielded pool balances">
@@ -86,7 +86,7 @@ export default async function IronwoodPage() {
               <div>
                 <p className="font-medium">Turnstile holds</p>
                 <p className="text-muted">
-                  Orchard balance is {zec(m.orchard_now, 2)} ZEC and has never gone negative, so no more value left Orchard than
+                  Orchard balance is <span className="amt">{zec(m.orchard_now, 2)}</span> ZEC and has never gone negative, so no more value left Orchard than
                   entered it.
                 </p>
               </div>

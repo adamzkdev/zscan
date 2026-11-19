@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { short } from "@/lib/format";
+import { useAddressesHidden } from "./PrivacyScreen";
 
 export function Hash({
   value,
@@ -19,10 +20,12 @@ export function Hash({
 }) {
   const text = full ? value : short(value, head, tail);
   const inner = <span className="font-mono">{text}</span>;
+  // Privacy screen: an address link is blurred by CSS; drop its full-value tooltip too.
+  const addressHidden = useAddressesHidden() && !!href && /^\/(address|shielded)\//.test(href);
   return (
     <span className={`inline-flex min-w-0 items-center gap-1.5 ${full ? "break-all" : ""}`}>
       {href ? (
-        <Link href={href} className="text-link hover:text-link-hover" title={value}>
+        <Link href={href} className="text-link hover:text-link-hover" title={addressHidden ? undefined : value}>
           {inner}
         </Link>
       ) : (

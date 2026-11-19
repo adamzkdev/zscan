@@ -54,7 +54,7 @@ export default async function ProtocolPage(props: PageProps<"/protocol/[slug]">)
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Holdings" value={<Zec zat={p.holdings} decimals={2} />} sub={pool ? "consensus pool value" : `${int(p.addresses)} labeled address${p.addresses === 1 ? "" : "es"}`} />
-        <Stat label="Change 7d" value={p.change_7d == null ? "—" : `${signedZec(p.change_7d, 2)} ZEC`} accent={p.change_7d == null ? undefined : p.change_7d >= 0 ? "var(--good)" : "var(--bad)"} />
+        <Stat label="Change 7d" value={p.change_7d == null ? "—" : <><span className="amt">{signedZec(p.change_7d, 2)}</span> ZEC</>} accent={p.change_7d == null ? undefined : p.change_7d >= 0 ? "var(--good)" : "var(--bad)"} />
         <Stat label="Inflow 7d" value={<Zec zat={p.inflow_7d} decimals={2} />} />
         <Stat label="Outflow 7d" value={p.outflow_7d == null ? "—" : <Zec zat={p.outflow_7d} decimals={2} />} />
       </div>
@@ -69,8 +69,8 @@ export default async function ProtocolPage(props: PageProps<"/protocol/[slug]">)
         <Card title="Overview" pad={false}>
           <dl className="divide-y divide-border text-sm">
             <Row label="Category" value={categoryLabel(p.category)} />
-            <Row label="Change 1d" value={p.change_1d == null ? "—" : `${signedZec(p.change_1d, 2)} ZEC`} />
-            <Row label="Change 30d" value={p.change_30d == null ? "—" : `${signedZec(p.change_30d, 2)} ZEC`} />
+            <Row label="Change 1d" value={p.change_1d == null ? "—" : <><span className="amt">{signedZec(p.change_1d, 2)}</span> ZEC</>} />
+            <Row label="Change 30d" value={p.change_30d == null ? "—" : <><span className="amt">{signedZec(p.change_30d, 2)}</span> ZEC</>} />
             {rows.map(([k, v]) => (
               <Row key={k} label={k} value={v} />
             ))}
@@ -131,7 +131,7 @@ export default async function ProtocolPage(props: PageProps<"/protocol/[slug]">)
                       <td className={td}><KindBadge kind={t.kind} /></td>
                       <td className={td}><Link href={`/block/${t.height}`} className="text-link hover:text-link-hover">{t.height}</Link></td>
                       <td className={`${td} text-muted`}><TimeAgo iso={t.time} /></td>
-                      <td className={`${td} num text-right ${t.delta >= 0 ? "text-good" : "text-bad"}`}>{signedZec(t.delta, 4)} ZEC</td>
+                      <td className={`${td} num text-right ${t.delta >= 0 ? "text-good" : "text-bad"}`}><span className="amt">{signedZec(t.delta, 4)}</span> ZEC</td>
                     </tr>
                   ))}
                 </tbody>

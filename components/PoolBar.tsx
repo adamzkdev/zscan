@@ -22,7 +22,7 @@ export function PoolBar({ pools, compact = false }: { pools: PoolValues; compact
             <li key={p.key} className="flex items-center gap-2">
               <span className="size-2.5 shrink-0 rounded-sm" style={{ background: p.color }} />
               <span className="text-muted">{p.label}</span>
-              <span className="num ml-auto font-medium">{zecCompact(pools[p.key])}</span>
+              <span className="num amt ml-auto font-medium">{zecCompact(pools[p.key])}</span>
               <span className="num w-12 text-right text-xs text-faint">{pct(pools[p.key] / total)}</span>
             </li>
           ))}

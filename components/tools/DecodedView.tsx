@@ -20,8 +20,11 @@ function opReturnText(hex: string): string | null {
 function balance(vb: number) {
   return (
     <span className={vb > 0 ? "text-good" : vb < 0 ? "text-bad" : ""}>
-      {vb > 0 ? "+" : ""}
-      {zec(vb)} ZEC
+      <span className="amt">
+        {vb > 0 ? "+" : ""}
+        {zec(vb)}
+      </span>{" "}
+      ZEC
     </span>
   );
 }
@@ -65,7 +68,7 @@ export function DecodedView({ d }: { d: DecodedTx }) {
             ["Coinbase", t.is_coinbase ? "Yes" : "No"],
             !t.is_coinbase && ["ZIP-317 logical actions", int(d.logical_actions)],
             !t.is_coinbase && ["Conventional fee", `${zec(d.conventional_fee)} ZEC`],
-            ["Transparent out", `${zec(transparentOut)} ZEC`],
+            ["Transparent out", <><span className="amt">{zec(transparentOut)}</span> ZEC</>],
             ...vbs.map(([name, v]) => [`${name} value balance`, balance(v)] as [string, React.ReactNode]),
           ]}
         />
@@ -119,7 +122,7 @@ export function DecodedView({ d }: { d: DecodedTx }) {
                           <span className="break-all text-muted">script {o.script}</span>
                         )}
                       </span>
-                      <span className="num shrink-0">{zec(o.value)} ZEC</span>
+                      <span className="num shrink-0"><span className="amt">{zec(o.value)}</span> ZEC</span>
                     </li>
                   );
                 })}

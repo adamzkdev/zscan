@@ -20,7 +20,7 @@ export function LiveMempool({ initial, chain }: { initial: Mempool; chain: Chain
   const now = useNow();
   useLive(async (e) => {
     if (e.type === "block") setLastBlockAt(Date.now());
-    const next = await fetch("/v1/mempool").then((r) => r.json());
+    const next = await fetch("/v1/mempool").then((r) => r.json() as Promise<Mempool>);
     setM(next);
   });
   const T = chain?.blockTime ?? 75;

@@ -34,7 +34,7 @@ function Side({ amount, symbol, chain, chainLabel }: { amount: string | null; sy
       <TokenLogo symbol={symbol} chain={chain} />
       <span className="leading-tight">
         <span className="num block font-medium">
-          {amount ?? "—"} {symbol}
+          <span className="amt">{amount ?? "—"}</span> {symbol}
         </span>
         <span className="block text-xs text-muted">{chainLabel}</span>
       </span>
@@ -95,7 +95,7 @@ export function CrossChainFeed({ events }: { events: BridgeEvent[] }) {
                       <ArrowRightIcon />
                     </td>
                     <td className={td}>{e.direction === "out" ? other : zcash}</td>
-                    <td className={`${td} num text-right`}>{e.usd != null ? usd(e.usd) : "—"}</td>
+                    <td className={`${td} num amt text-right`}>{e.usd != null ? usd(e.usd) : "—"}</td>
                     <td className={td}>
                       {e.address_kind == null ? (
                         <span className="text-faint">—</span>

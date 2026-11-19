@@ -38,7 +38,7 @@ export default async function AddressPage(props: PageProps<"/address/[address]">
       <PageTitle
         title={
           <span className="flex flex-wrap items-center gap-2">
-            Address <span className="break-all font-mono text-base font-normal">{a.address}</span>
+            Address <span className="addr break-all font-mono text-base font-normal">{a.address}</span>
             <CopyButton value={a.address} />
             <QrButton value={a.address} />
             <a

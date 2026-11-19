@@ -156,7 +156,7 @@ export function Rings({
         <>
           <p className="font-medium">#{p.item}</p>
           <p className="text-muted">Rank {int(p.rank)} · purged for {a.name}</p>
-          {p.last != null && <p className="text-muted">Last sale {zec(p.last, 2)} ZEC</p>}
+          {p.last != null && <p className="text-muted">Last sale <span className="amt">{zec(p.last, 2)}</span> ZEC</p>}
         </>
       );
     }
@@ -229,8 +229,8 @@ export function Rings({
                       #{s.item}
                     </Link>{" "}
                     · revealed {s.unlocked_at ? `${s.unlocked_at.slice(0, 10)} ${hhmm(Date.parse(s.unlocked_at))} UTC` : "—"}
-                    {s.ask != null && ` · listed ${zec(s.ask, 2)} ZEC`}
-                    {s.last != null && ` · last sale ${zec(s.last, 2)} ZEC`}
+                    {s.ask != null && <> · listed <span className="amt">{zec(s.ask, 2)}</span> ZEC</>}
+                    {s.last != null && <> · last sale <span className="amt">{zec(s.last, 2)}</span> ZEC</>}
                   </p>
                 </div>
                 <button type="button" onClick={() => setSel(-1)} className="text-xs text-muted hover:text-text" aria-label="Close">

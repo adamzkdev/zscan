@@ -45,7 +45,7 @@ export default async function Home() {
             )}
             <p className="mt-3 text-sm text-white/65">
               Shielded supply: <span className="text-white">{pct(pools.shielded_ratio)}</span> · Ironwood pool:{" "}
-              <span className="text-white">{int(Math.round(pools.pools.ironwood / 1e8))} ZEC</span>
+              <span className="text-white"><span className="amt">{int(Math.round(pools.pools.ironwood / 1e8))}</span> ZEC</span>
             </p>
           </div>
           <Link

@@ -150,7 +150,7 @@ export function TxTracker({ initial, chain }: { initial: TxDetail; chain: ChainC
                 <b className="text-text">{duration(blockQuantile(0.9, T))}</b>
               </p>
               <p className={paysFull ? "text-good" : "text-warn"}>
-                {paysFull ? "✓ " : "⚠ "}Fee {zec(tx.fee)} ZEC {paysFull ? "≥" : "<"} conventional {zec(conventional)} ZEC
+                {paysFull ? "✓ " : "⚠ "}Fee <span className="amt">{zec(tx.fee)}</span> ZEC {paysFull ? "≥" : "<"} conventional {zec(conventional)} ZEC
                 {!chain.fitsNextBlock && paysFull && <span className="text-warn"> · mempool is busy</span>}
               </p>
               {expiresIn != null && expiresIn > 0 && (

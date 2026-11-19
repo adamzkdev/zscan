@@ -81,7 +81,7 @@ export function Apparitions({ slug, name, data, initial }: { slug: string; name:
         />
         <Stat
           label="Value purged"
-          value={sold.length ? `${zec(soldValue, 1)} ZEC` : "—"}
+          value={sold.length ? <><span className="amt">{zec(soldValue, 1)}</span> ZEC</> : "—"}
           sub={`last sales of the ${int(sold.length)} that had sold`}
         />
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAmountsHidden } from "./PrivacyScreen";
 import { usd, useZecUsd } from "./price";
 import { ZecIcon } from "./ZecIcon";
 
@@ -18,16 +19,18 @@ export function Zec({
   iconSize?: number;
 }) {
   const price = useZecUsd();
+  const hidden = useAmountsHidden();
   if (zat == null) return <span className="text-faint">—</span>;
   const value = zat / 1e8;
   return (
     // The USD value wraps under the amount when space runs out (narrow stat tiles on phones).
-    <span className={`num inline-flex max-w-full flex-wrap items-center gap-x-1 ${className}`} title={`${value.toLocaleString("en-US", { maximumFractionDigits: 8 })} ZEC`}>
+    // `amt` marks the figures for the privacy screen; the exact value tooltip goes with it.
+    <span className={`num inline-flex max-w-full flex-wrap items-center gap-x-1 ${className}`} title={hidden ? undefined : `${value.toLocaleString("en-US", { maximumFractionDigits: 8 })} ZEC`}>
       <span className="inline-flex items-center gap-1 whitespace-nowrap">
         <ZecIcon size={iconSize} />
-        {value.toLocaleString("en-US", { maximumFractionDigits: decimals })}
+        <span className="amt">{value.toLocaleString("en-US", { maximumFractionDigits: decimals })}</span>
       </span>
-      {showUsd && price != null && <span className="whitespace-nowrap text-muted">({usd(value * price)})</span>}
+      {showUsd && price != null && <span className="amt whitespace-nowrap text-muted">({usd(value * price)})</span>}
     </span>
   );
 }

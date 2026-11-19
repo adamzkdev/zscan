@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Rust (viewing-key scanner, built into public/wasm by scripts/build-wasm.sh)
 /wasm/target
+/dist/
+.vinext/
+.cloudflare/

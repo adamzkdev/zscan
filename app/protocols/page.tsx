@@ -19,7 +19,9 @@ function Change({ zat, base }: { zat: number | null; base: number | null }) {
   const tone = zat > 0 ? "text-good" : zat < 0 ? "text-bad" : "text-muted";
   return (
     <span className={`num ${tone}`} title={`${signedZec(zat, 2)} ZEC`}>
+      <span className={rel != null && Number.isFinite(rel) ? "" : "amt"}>
       {rel != null && Number.isFinite(rel) ? `${rel >= 0 ? "+" : ""}${(rel * 100).toFixed(2)}%` : signedZec(zat, 2)}
+      </span>
     </span>
   );
 }
@@ -47,10 +49,10 @@ export default async function ProtocolsPage(props: PageProps<"/protocols">) {
       </PageTitle>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="ZEC tracked" value={`${zec(tracked, 0)} ZEC`} />
-        <Stat label="In shielded pools" value={`${zec(sum("shielded_pool"), 0)} ZEC`} accent="var(--ironwood-ink)" />
-        <Stat label="In treasuries" value={`${zec(sum("treasury"), 0)} ZEC`} />
-        <Stat label="In bridges" value={`${zec(sum("bridge"), 0)} ZEC`} />
+        <Stat label="ZEC tracked" value={<><span className="amt">{zec(tracked, 0)}</span> ZEC</>} />
+        <Stat label="In shielded pools" value={<><span className="amt">{zec(sum("shielded_pool"), 0)}</span> ZEC</>} accent="var(--ironwood-ink)" />
+        <Stat label="In treasuries" value={<><span className="amt">{zec(sum("treasury"), 0)}</span> ZEC</>} />
+        <Stat label="In bridges" value={<><span className="amt">{zec(sum("bridge"), 0)}</span> ZEC</>} />
       </div>
 
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="Categories">
@@ -94,12 +96,12 @@ export default async function ProtocolsPage(props: PageProps<"/protocols">) {
                     <td className={td}>
                       <Pill>{categoryLabel(p.category)}</Pill>
                     </td>
-                    <td className={`${td} num text-right font-medium`}>{zec(p.holdings, 2)}</td>
+                    <td className={`${td} num amt text-right font-medium`}>{zec(p.holdings, 2)}</td>
                     <td className={`${td} text-right`}><Change zat={p.change_1d} base={p.holdings} /></td>
                     <td className={`${td} text-right`}><Change zat={p.change_7d} base={p.holdings} /></td>
                     <td className={`${td} text-right`}><Change zat={p.change_30d} base={p.holdings} /></td>
-                    <td className={`${td} num text-right text-muted`}>{zec(p.inflow_7d, 2)}</td>
-                    <td className={`${td} num text-right text-muted`}>{zec(p.outflow_7d, 2)}</td>
+                    <td className={`${td} num amt text-right text-muted`}>{zec(p.inflow_7d, 2)}</td>
+                    <td className={`${td} num amt text-right text-muted`}>{zec(p.outflow_7d, 2)}</td>
                     <td className={td}>
                       <Sparkline values={p.sparkline} />
                     </td>

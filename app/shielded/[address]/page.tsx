@@ -23,7 +23,7 @@ export default async function ShieldedPage(props: PageProps<"/shielded/[address]
       </PageTitle>
       <Card>
         <p className="flex items-start gap-2 break-all font-mono text-sm">
-          {decoded} <CopyButton value={decoded} />
+          <span className="addr">{decoded}</span> <CopyButton value={decoded} />
         </p>
       </Card>
       {ua && (

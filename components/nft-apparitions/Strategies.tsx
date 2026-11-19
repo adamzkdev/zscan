@@ -146,7 +146,7 @@ export function Strategies({ slug, apps, bySlot, minted }: { slug: string; apps:
                 <p className="text-muted">
                   Rank {int(hi.p.rank)} · purged for {hi.a.name}
                 </p>
-                {hi.p.last != null && <p className="text-muted">Last sale {zec(hi.p.last, 2)} ZEC</p>}
+                {hi.p.last != null && <p className="text-muted">Last sale <span className="amt">{zec(hi.p.last, 2)}</span> ZEC</p>}
               </div>
             )}
           </>

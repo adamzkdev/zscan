@@ -16,6 +16,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     signal: init?.signal ?? AbortSignal.timeout(15_000),
   });
   const body = await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(body?.error ?? `http_${res.status}`, body?.message ?? `HTTP ${res.status}`);
+  if (!res.ok) {
+    const code = body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : `http_${res.status}`;
+    const message = body && typeof body === "object" && "message" in body && typeof body.message === "string" ? body.message : `HTTP ${res.status}`;
+    throw new ApiError(code, message);
+  }
   return body as T;
 }

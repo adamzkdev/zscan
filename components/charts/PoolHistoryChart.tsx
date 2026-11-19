@@ -21,7 +21,7 @@ export function PoolHistoryChart({ initial }: { initial: PoolPoint[] }) {
     if (next === "hour" && !hourly) {
       const since = new Date(Date.now() - 7 * 86400_000).toISOString();
       fetch(`/v1/pools/history?interval=hour&since=${since}`)
-        .then((r) => r.json())
+        .then((r) => r.json() as Promise<PoolPoint[]>)
         .then(setHourly)
         .catch(() => {});
     }
@@ -54,7 +54,7 @@ export function PoolHistoryChart({ initial }: { initial: PoolPoint[] }) {
           <Legend items={pools.map((p) => ({ label: p.label, color: p.color }))} />
         </div>
       </div>
-      <div className="h-80">
+      <div className="amt-chart h-80">
         <ResponsiveContainer>
           <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid {...GRID} />

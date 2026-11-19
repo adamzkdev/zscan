@@ -205,8 +205,8 @@ function IronwoodMigration({ m }: { m: Migration }) {
           <span className="text-sm text-muted">{m.migrated_ratio != null ? "migrated out of Orchard" : "already in Ironwood"}</span>
         </p>
         <p className="text-sm text-muted">
-          <span className="num text-text">{zec(m.ironwood_now, 0)}</span> ZEC in Ironwood ·{" "}
-          <span className="num text-text">{zec(m.orchard_now, 0)}</span> ZEC left in Orchard
+          <span className="num amt text-text">{zec(m.ironwood_now, 0)}</span> ZEC in Ironwood ·{" "}
+          <span className="num amt text-text">{zec(m.orchard_now, 0)}</span> ZEC left in Orchard
         </p>
       </div>
       <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
